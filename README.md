@@ -153,7 +153,7 @@ MatchoMate follows a modular client-server architecture.
                         ▼
               ┌─────────────────┐
               │ Next.js Frontend│
-              │ React + TypeScript
+              │ React + 
               └────────┬────────┘
                        │ REST API
                        ▼
