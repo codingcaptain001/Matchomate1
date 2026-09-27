@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import * as seed from '../../../src/data/mockData.js';
+import * as seed from '../data/mockData.js';
 import { AppError } from '../middleware/error.middleware.js';
 
 export type HostelState = Record<string, unknown[]>;
