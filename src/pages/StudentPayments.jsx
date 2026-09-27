@@ -6,6 +6,28 @@ import {
 import { useHostelStore } from '../context/HostelStore';
 import { inr, formatDate } from '../components/ops/OpsShared';
 
+function downloadReceipt(payment) {
+  const lines = [
+    'MATCHOMATE HOSTEL PAYMENT RECEIPT',
+    `Receipt: ${payment.receipt || payment.id}`,
+    `Student: ${payment.studentId}`,
+    `Payment for: ${payment.type} (${payment.month})`,
+    `Payment date: ${payment.paidOn ? formatDate(payment.paidOn) : 'Not recorded'}`,
+    `Method: ${payment.method || 'Not recorded'}`,
+    `Transaction: ${payment.txnId || 'Not recorded'}`,
+    `Amount paid: ${inr(payment.amount)}`,
+  ];
+  const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `matchomate-receipt-${payment.receipt || payment.id}.txt`;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export default function StudentPayments() {
   const {
     currentStudent,
@@ -303,11 +325,11 @@ export default function StudentPayments() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-tertiary)' }}>Payment Date:</span>
-                    <strong>{formatDate(receiptModal.paidOn || '2026-09-03')}</strong>
+                    <strong>{receiptModal.paidOn ? formatDate(receiptModal.paidOn) : 'Not recorded'}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-tertiary)' }}>Method / Txn:</span>
-                    <strong>{receiptModal.method || 'UPI'} ({receiptModal.txnId || 'UPI202609031145'})</strong>
+                    <strong>{receiptModal.method || 'Not recorded'} ({receiptModal.txnId || 'Not recorded'})</strong>
                   </div>
                   <div style={{ borderTop: '1px solid var(--border-primary)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-sm)' }}>
                     <strong>Total Paid:</strong>
@@ -322,11 +344,11 @@ export default function StudentPayments() {
                 className="btn btn--primary"
                 style={{ flex: 1 }}
                 onClick={() => {
-                  showToast('Receipt downloaded as PDF.');
-                  setReceiptModal(null);
+                  downloadReceipt(receiptModal);
+                  showToast('Payment receipt downloaded.');
                 }}
               >
-                <Download size={14} /> Download PDF
+                <Download size={14} /> Download Receipt
               </button>
               <button type="button" className="btn btn--ghost" onClick={() => setReceiptModal(null)}>Close</button>
             </div>

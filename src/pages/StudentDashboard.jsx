@@ -8,11 +8,14 @@ import {
 } from 'lucide-react';
 import { useHostelStore } from '../context/HostelStore';
 import { inr, formatDate } from '../components/ops/OpsShared';
+import { getRoommateMatches } from '../api/matching';
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const {
     currentStudent,
+    rooms = [],
+    students = [],
     movements = [],
     currentMovementStatus,
     markMovement,
@@ -29,6 +32,9 @@ export default function StudentDashboard() {
   const [selectedMethod, setSelectedMethod] = useState('UPI');
   const [compatibilityModal, setCompatibilityModal] = useState(false);
   const [greeting, setGreeting] = useState('Good evening');
+  const [roommateMatch, setRoommateMatch] = useState({ loading: true, error: '', match: null });
+  const assignedRoom = rooms.find((room) => room.number === currentStudent?.room);
+  const matchedStudent = students.find((student) => student.id === roommateMatch.match?.studentId);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -36,6 +42,17 @@ export default function StudentDashboard() {
     else if (hour < 17) setGreeting('Good afternoon');
     else setGreeting('Good evening');
   }, []);
+
+  useEffect(() => {
+    if (!currentStudent?.id) return undefined;
+    const controller = new AbortController();
+    getRoommateMatches(currentStudent.id, { signal: controller.signal })
+      .then(({ matches: results }) => setRoommateMatch({ loading: false, error: '', match: results[0] || null }))
+      .catch((error) => {
+        if (error.name !== 'AbortError') setRoommateMatch({ loading: false, error: error.message, match: null });
+      });
+    return () => controller.abort();
+  }, [currentStudent?.id]);
 
   // Student specific data with safe array fallbacks
   const myPayments = (payments || []).filter((p) => p.studentId === currentStudent?.id);
@@ -508,9 +525,9 @@ export default function StudentDashboard() {
                   My Room
                 </div>
                 <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  Room B-304
+                  Room {currentStudent?.room || 'Unassigned'}
                   <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-tertiary)' }}>
-                    Block B • Floor 3 • Bed A
+                    Block {assignedRoom?.block || '—'} · Floor {assignedRoom?.floor || '—'} · Bed {currentStudent?.bed || '—'}
                   </span>
                 </div>
               </div>
@@ -542,8 +559,8 @@ export default function StudentDashboard() {
               position: 'relative',
             }}>
               <img
-                src="/images/room_b304.jpg"
-                alt="Room B-304"
+                src={currentStudent?.room === 'B-304' ? '/images/room_b304.jpg' : '/images/hostel_night.jpg'}
+                alt={currentStudent?.room === 'B-304' ? 'Room B-304' : 'ABC Residency'}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -568,7 +585,7 @@ export default function StudentDashboard() {
                 <BedDouble size={18} style={{ color: '#818cf8', flexShrink: 0 }} />
                 <div>
                   <div style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>Room Type</div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>Double Sharing</div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{assignedRoom?.type || 'Room'}</div>
                 </div>
               </div>
 
@@ -585,7 +602,7 @@ export default function StudentDashboard() {
                 <Users size={18} style={{ color: '#38bdf8', flexShrink: 0 }} />
                 <div>
                   <div style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>Capacity</div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>2 Students</div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{assignedRoom?.capacity || 0} Students</div>
                 </div>
               </div>
 
@@ -602,7 +619,7 @@ export default function StudentDashboard() {
                 <Users size={18} style={{ color: '#a78bfa', flexShrink: 0 }} />
                 <div>
                   <div style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>Occupancy</div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>2 / 2</div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{assignedRoommates.length} / {assignedRoom?.capacity || 0}</div>
                 </div>
               </div>
 
@@ -619,7 +636,7 @@ export default function StudentDashboard() {
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
                 <div>
                   <div style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>Room Status</div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#22c55e' }}>Active</div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: assignedRoom?.status === 'maintenance' ? 'var(--warning-600)' : 'var(--success-600)' }}>{assignedRoom?.status || 'Unassigned'}</div>
                 </div>
               </div>
             </div>
@@ -676,18 +693,17 @@ export default function StudentDashboard() {
                   justifyContent: 'center',
                   boxShadow: '0 4px 12px rgba(124, 58, 237, 0.35)',
                 }}>
-                  AK
+                  {roommateMatch.match?.name?.split(' ').map((part) => part[0]).join('').slice(0, 2) || '—'}
                 </div>
                 <div>
                   <h4 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                    Aman Kumar
+                    {roommateMatch.loading ? 'Finding matches...' : roommateMatch.error ? 'Matches unavailable' : roommateMatch.match?.name || 'No matches available'}
                   </h4>
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: 2 }}>
-                    B.Tech ME • Bed B
+                    {matchedStudent ? `${matchedStudent.course} · Room ${matchedStudent.room}` : roommateMatch.match?.label || 'Lifestyle recommendation'}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
-                    <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 600 }}>In Hostel</span>
+                    {roommateMatch.match && <><span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} /><span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 600 }}>{roommateMatch.match.label}</span></>}
                   </div>
                 </div>
               </div>
@@ -698,7 +714,7 @@ export default function StudentDashboard() {
                   width: 70,
                   height: 70,
                   borderRadius: '50%',
-                  border: '4px solid #10b981',
+                  border: `4px solid ${roommateMatch.match ? '#10b981' : 'var(--gray-300)'}`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -706,7 +722,7 @@ export default function StudentDashboard() {
                   boxShadow: '0 0 16px rgba(16, 185, 129, 0.3)',
                 }}>
                   <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    94%
+                    {roommateMatch.match ? `${roommateMatch.match.compatibilityScore}%` : '—'}
                   </span>
                 </div>
                 <div style={{
@@ -719,7 +735,7 @@ export default function StudentDashboard() {
                   marginTop: 6,
                   display: 'inline-block'
                 }}>
-                  Excellent Match ✨
+                  {roommateMatch.match?.label || (roommateMatch.error ? 'Unavailable' : 'No match yet')}
                 </div>
               </div>
             </div>
@@ -728,7 +744,7 @@ export default function StudentDashboard() {
           {/* Compatibility link button */}
           <button
             type="button"
-            onClick={() => setCompatibilityModal(true)}
+            onClick={() => navigate('/student/roommate')}
             style={{
               marginTop: 14,
               padding: '10px 14px',

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import * as seed from '../data/mockData';
 
 const HostelContext = createContext(null);
@@ -39,11 +39,56 @@ export function HostelProvider({ children }) {
   ]);
   const [hydrating, setHydrating] = useState(true);
   const [toast, setToast] = useState(null);
+  const backendAvailable = useRef(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setHydrating(false), 450);
-    return () => clearTimeout(t);
+    let active = true;
+    fetch('/api/state')
+      .then((response) => {
+        if (!response.ok) throw new Error('Backend unavailable');
+        return response.json();
+      })
+      .then((state) => {
+        if (!active) return;
+        if (Array.isArray(state.students)) setStudents(state.students);
+        if (Array.isArray(state.rooms)) setRooms(state.rooms);
+        if (Array.isArray(state.complaints)) setComplaints(state.complaints);
+        if (Array.isArray(state.attendance)) setAttendance(state.attendance);
+        if (Array.isArray(state.payments)) setPayments(state.payments);
+        if (Array.isArray(state.leaveRequests)) setLeaveRequests(state.leaveRequests);
+        if (Array.isArray(state.maintenance)) setMaintenance(state.maintenance);
+        if (Array.isArray(state.visitors)) setVisitors(state.visitors);
+        if (Array.isArray(state.messMenu)) setMessMenu(state.messMenu);
+        if (Array.isArray(state.messSkips)) setMessSkips(state.messSkips);
+        if (Array.isArray(state.messFeedback)) setMessFeedback(state.messFeedback);
+        if (Array.isArray(state.announcements)) setAnnouncements(state.announcements);
+        if (Array.isArray(state.recentActivity)) setRecentActivity(state.recentActivity);
+        if (Array.isArray(state.movements)) setMovements(state.movements);
+        backendAvailable.current = true;
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setHydrating(false);
+      });
+    return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (hydrating || !backendAvailable.current) return;
+    const state = {
+      students, rooms, complaints, attendance, payments, leaveRequests,
+      maintenance, visitors, messMenu, messSkips, messFeedback,
+      announcements, recentActivity, movements,
+    };
+    const controller = new AbortController();
+    fetch('/api/state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state),
+      signal: controller.signal,
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [hydrating, students, rooms, complaints, attendance, payments, leaveRequests, maintenance, visitors, messMenu, messSkips, messFeedback, announcements, recentActivity, movements]);
 
   const showToast = useCallback((message) => {
     setToast(message);
@@ -111,43 +156,44 @@ export function HostelProvider({ children }) {
   const markAllUnmarkedPresent = useCallback(() => {
     const now = new Date();
     const checkIn = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const unmarked = new Set();
+    const unmarkedStudents = students.filter((student) => {
+      const record = attendance.find((row) => row.studentId === student.id && row.date === seed.HOSTEL_TODAY);
+      return !record || record.status === 'unmarked';
+    });
+    if (unmarkedStudents.length === 0) {
+      showToast('Everyone is already marked for today.');
+      return;
+    }
+
+    const unmarkedIds = new Set(unmarkedStudents.map((student) => student.id));
+    const bulkTimestamp = Date.now();
     setAttendance((prev) => {
-      const next = prev.map((row) => ({ ...row }));
-      students.forEach((s) => {
-        const rec = next.find((a) => a.studentId === s.id && a.date === seed.HOSTEL_TODAY);
-        if (!rec || rec.status === 'unmarked') {
-          unmarked.add(s.id);
-          if (rec) {
-            rec.status = 'present';
-            rec.checkIn = checkIn;
-            rec.method = 'Bulk mark';
-            rec.gate = rec.gate || 'Admin desk';
-          } else {
-            next.push({
-              id: `ATT-${s.id}-bulk`,
-              studentId: s.id,
-              date: seed.HOSTEL_TODAY,
-              status: 'present',
-              checkIn,
-              method: 'Bulk mark',
-              gate: 'Admin desk',
-            });
-          }
+      const next = [...prev];
+      unmarkedStudents.forEach((student) => {
+        const index = next.findIndex((row) => row.studentId === student.id && row.date === seed.HOSTEL_TODAY);
+        const record = {
+          id: index >= 0 ? next[index].id : `ATT-${student.id}-bulk-${bulkTimestamp}`,
+          studentId: student.id,
+          date: seed.HOSTEL_TODAY,
+          status: 'present',
+          checkIn,
+          method: 'Bulk mark',
+          gate: index >= 0 ? next[index].gate || 'Admin desk' : 'Admin desk',
+        };
+        if (index >= 0) {
+          next[index] = { ...next[index], ...record };
+        } else {
+          next.push(record);
         }
       });
       return next;
     });
-    if (unmarked.size === 0) {
-      showToast('Everyone is already marked for today.');
-      return;
-    }
     setStudents((prev) => prev.map((s) => (
-      unmarked.has(s.id) ? { ...s, attendance: Math.min(100, Math.round((s.attendance + 0.4) * 10) / 10) } : s
+      unmarkedIds.has(s.id) ? { ...s, attendance: Math.min(100, Math.round((s.attendance + 0.4) * 10) / 10) } : s
     )));
-    showToast(`Marked ${unmarked.size} unmarked student(s) present.`);
-    pushActivity(`Bulk attendance: ${unmarked.size} students marked present`, 'attendance', 'ClipboardCheck');
-  }, [students, showToast, pushActivity]);
+    showToast(`Marked ${unmarkedStudents.length} unmarked student(s) present.`);
+    pushActivity(`Bulk attendance: ${unmarkedStudents.length} students marked present`, 'attendance', 'ClipboardCheck');
+  }, [students, attendance, showToast, pushActivity]);
 
   const markPaymentPaid = useCallback((paymentId, method = 'UPI') => {
     const target = payments.find((p) => p.id === paymentId);
@@ -294,17 +340,15 @@ export function HostelProvider({ children }) {
   }, [leaveRequests, students, showToast, pushActivity]);
 
   const reviewMessSkip = useCallback((skipId, status) => {
-    let studentId;
-    let meal;
+    const target = messSkips.find((item) => item.id === skipId);
+    if (!target) return;
     setMessSkips((prev) => prev.map((s) => {
       if (s.id !== skipId) return s;
-      studentId = s.studentId;
-      meal = s.meal;
       return { ...s, status };
     }));
-    const student = students.find((s) => s.id === studentId);
-    showToast(`${meal} skip ${status} for ${student?.name}.`);
-  }, [students, showToast]);
+    const student = students.find((s) => s.id === target.studentId);
+    showToast(`${target.meal} skip ${status} for ${student?.name || 'student'}.`);
+  }, [messSkips, students, showToast]);
 
   const toggleMenuAvailability = useCallback((menuId) => {
     setMessMenu((prev) => prev.map((m) => (m.id === menuId ? { ...m, available: !m.available } : m)));
@@ -373,12 +417,23 @@ export function HostelProvider({ children }) {
         return [...prev, { id: `ATT-${currentStudentId}-${Date.now()}`, studentId: currentStudentId, date: seed.HOSTEL_TODAY, status: 'present', checkIn: hhmm, method: 'Self Check-in', gate: location }];
       });
       showToast(`Marked IN at ${timeStr}. Welcome back!`);
-      pushActivity(`Rahul Sharma marked IN at ${timeStr} (${location})`, 'attendance', 'ClipboardCheck');
+      pushActivity(`${currentStudent?.name || 'Student'} marked IN at ${timeStr} (${location})`, 'attendance', 'ClipboardCheck');
     } else {
       showToast(`Marked OUT at ${timeStr}. Gate pass recorded.`);
-      pushActivity(`Rahul Sharma marked OUT at ${timeStr} (${location})`, 'attendance', 'UserCheck');
+      pushActivity(`${currentStudent?.name || 'Student'} marked OUT at ${timeStr} (${location})`, 'attendance', 'UserCheck');
     }
-  }, [currentStudentId, showToast, pushActivity]);
+  }, [currentStudentId, currentStudent, showToast, pushActivity]);
+
+  const updateStudentProfile = useCallback((studentId, patch) => {
+    const target = students.find((student) => student.id === studentId);
+    if (!target) return false;
+    setStudents((prev) => prev.map((student) => (
+      student.id === studentId ? { ...student, ...patch } : student
+    )));
+    showToast('Student profile updated.');
+    pushActivity(`Profile updated for ${target.name}`, 'student', 'UserCheck');
+    return true;
+  }, [students, showToast, pushActivity]);
 
   const addComplaint = useCallback((newCmp) => {
     const id = `CMP-${Math.floor(1860 + Math.random() * 100)}`;
@@ -400,6 +455,36 @@ export function HostelProvider({ children }) {
     pushActivity(`New complaint ${id} raised by ${full.student} (${full.category})`, 'complaint', 'AlertCircle');
     return id;
   }, [currentStudentId, currentStudent, showToast, pushActivity]);
+
+  const addStudent = useCallback((details) => {
+    const largestId = students.reduce((largest, student) => {
+      const number = Number(student.id.replace(/^STU/i, ''));
+      return Number.isFinite(number) ? Math.max(largest, number) : largest;
+    }, 0);
+    const name = details.name.trim();
+    const student = {
+      id: `STU${String(largestId + 1).padStart(3, '0')}`,
+      name,
+      course: details.course.trim(),
+      year: Number(details.year),
+      room: 'Unassigned',
+      bed: '—',
+      avatar: name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase(),
+      attendance: 0,
+      compatibility: null,
+      payment: 'pending',
+      status: 'onboarding',
+      email: details.email.trim(),
+      phone: details.phone.trim(),
+      city: details.city.trim(),
+      guardian: '',
+      guardianPhone: '',
+    };
+    setStudents((prev) => [student, ...prev]);
+    showToast(`${student.name} added to student onboarding.`);
+    pushActivity(`${student.name} added to student onboarding`, 'student', 'UserCheck');
+    return student;
+  }, [students, showToast, pushActivity]);
 
   const applyLeave = useCallback((req) => {
     const id = `LV-${Math.floor(1050 + Math.random() * 100)}`;
@@ -477,6 +562,35 @@ export function HostelProvider({ children }) {
     return id;
   }, [currentStudentId, showToast]);
 
+  const approveAllocations = useCallback((allocations) => {
+    const roomByStudent = new Map();
+    const movingOutByRoom = new Map();
+    const movingIntoRoom = new Map();
+    allocations.forEach((allocation) => {
+      allocation.students.forEach((student) => {
+        roomByStudent.set(student.id, allocation.room);
+        const currentRoom = students.find((item) => item.id === student.id)?.room;
+        if (currentRoom) movingOutByRoom.set(currentRoom, (movingOutByRoom.get(currentRoom) || 0) + 1);
+        movingIntoRoom.set(allocation.room, (movingIntoRoom.get(allocation.room) || 0) + 1);
+      });
+    });
+
+    setStudents((prev) => prev.map((student) => (
+      roomByStudent.has(student.id) ? { ...student, room: roomByStudent.get(student.id) } : student
+    )));
+    setRooms((prev) => prev.map((room) => {
+      if (room.status === 'maintenance') return room;
+      const occupied = Math.min(
+        room.capacity,
+        Math.max(0, room.occupied - (movingOutByRoom.get(room.number) || 0))
+          + (movingIntoRoom.get(room.number) || 0),
+      );
+      return { ...room, occupied, status: occupied >= room.capacity ? 'full' : 'available' };
+    }));
+    showToast(`Approved ${allocations.length} roommate allocations.`);
+    pushActivity(`Approved ${allocations.length} compatibility-based room allocations`, 'room', 'CheckCircle');
+  }, [students, showToast, pushActivity]);
+
   const value = {
     hydrating,
     toast,
@@ -520,10 +634,13 @@ export function HostelProvider({ children }) {
     acknowledgeFeedback,
     markMovement,
     addComplaint,
+    addStudent,
     applyLeave,
     addVisitor,
     addMessSkip,
     addMessFeedback,
+    approveAllocations,
+    updateStudentProfile,
   };
 
   return (

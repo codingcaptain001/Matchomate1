@@ -1,4 +1,5 @@
 import { AlertTriangle, Users, BedDouble, Wrench, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const iconMap = {
   AlertTriangle, Users, BedDouble, Wrench,
@@ -11,8 +12,15 @@ const severityConfig = {
 };
 
 export default function AIInsightCard({ item }) {
+  const navigate = useNavigate();
   const config = severityConfig[item.severity] || severityConfig.medium;
   const Icon = iconMap[item.icon] || AlertTriangle;
+  const routes = {
+    complaint: '/admin/complaints',
+    roommate: '/admin/ai-matching',
+    occupancy: '/admin/smart-allocation',
+    maintenance: '/admin/maintenance',
+  };
 
   return (
     <div className="ai-insight-card">
@@ -32,7 +40,7 @@ export default function AIInsightCard({ item }) {
         <span className="ai-insight-card__rec-text">{item.recommendation}</span>
       </div>
 
-      <button className="btn btn--secondary btn--sm ai-insight-card__cta">
+      <button type="button" className="btn btn--secondary btn--sm ai-insight-card__cta" onClick={() => navigate(routes[item.type] || '/admin/analytics')}>
         {item.cta}
         <ArrowRight size={14} />
       </button>

@@ -7,7 +7,7 @@ import {
 import { useHostelStore } from '../context/HostelStore';
 
 export default function StudentHelp() {
-  const { showToast } = useHostelStore();
+  const { showToast, addComplaint } = useHostelStore();
   const [openFaq, setOpenFaq] = useState(0);
   const [queryTopic, setQueryTopic] = useState('Fee & Ledger');
   const [queryText, setQueryText] = useState('');
@@ -45,7 +45,12 @@ export default function StudentHelp() {
   const handleQuerySubmit = (e) => {
     e.preventDefault();
     if (!queryText.trim()) return;
-    showToast('Your inquiry has been sent to Warden Office. Response expected within 24h.');
+    const ticketId = addComplaint({
+      category: 'Other',
+      priority: 'medium',
+      description: `Warden inquiry (${queryTopic}): ${queryText.trim()}`,
+    });
+    showToast(`Inquiry ${ticketId} submitted to the Warden Office.`);
     setQueryText('');
   };
 
@@ -165,8 +170,9 @@ export default function StudentHelp() {
 
           <form onSubmit={handleQuerySubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             <div>
-              <label className="ops-label">Inquiry Category</label>
+              <label className="ops-label" htmlFor="inquiry-category">Inquiry Category</label>
               <select
+                id="inquiry-category"
                 className="ops-select"
                 style={{ width: '100%' }}
                 value={queryTopic}
@@ -181,8 +187,9 @@ export default function StudentHelp() {
             </div>
 
             <div>
-              <label className="ops-label">Your Message</label>
+              <label className="ops-label" htmlFor="warden-message">Your Message</label>
               <textarea
+                id="warden-message"
                 className="ops-input"
                 style={{ width: '100%', minHeight: 120, resize: 'vertical' }}
                 value={queryText}

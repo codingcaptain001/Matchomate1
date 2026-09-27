@@ -4,11 +4,19 @@ import {
   Sun, Moon, Building, HelpCircle, ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { studentProfile } from '../data/mockData';
 import { useTheme } from '../context/ThemeContext';
 import SearchModal from './SearchModal';
 import HostelSwitcherModal from './HostelSwitcherModal';
 import NotificationsDropdown from './NotificationsDropdown';
+import { useHostelStore } from '../context/HostelStore';
+
+function readAdminProfile() {
+  try {
+    return JSON.parse(localStorage.getItem('matchomate.admin-profile') || '{"name":"Admin User","email":"admin@matchomate.com"}');
+  } catch {
+    return { name: 'Admin User', email: 'admin@matchomate.com' };
+  }
+}
 
 export default function Topbar({ onAIClick, onMobileMenuClick, isStudent }) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -21,6 +29,18 @@ export default function Topbar({ onAIClick, onMobileMenuClick, isStudent }) {
   const notifBtnRef = useRef(null);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { currentStudent } = useHostelStore();
+  const [adminProfile, setAdminProfile] = useState(readAdminProfile);
+
+  useEffect(() => {
+    const refreshProfile = () => setAdminProfile(readAdminProfile());
+    window.addEventListener('matchomate:admin-profile-updated', refreshProfile);
+    window.addEventListener('storage', refreshProfile);
+    return () => {
+      window.removeEventListener('matchomate:admin-profile-updated', refreshProfile);
+      window.removeEventListener('storage', refreshProfile);
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -90,7 +110,7 @@ export default function Topbar({ onAIClick, onMobileMenuClick, isStudent }) {
             boxShadow: '0 0 8px rgba(34, 197, 94, 0.6)'
           }} />
           <span style={{ fontWeight: 600 }}>
-            {isStudent ? 'ABC Residency - B-304' : 'ABC Residency (Admin)'}
+            {isStudent ? `ABC Residency - ${currentStudent?.room || 'Unassigned'}` : 'ABC Residency (Admin)'}
           </span>
           <ChevronDown size={14} style={{ color: 'var(--text-tertiary)', marginLeft: 2 }} />
         </button>
@@ -195,16 +215,16 @@ export default function Topbar({ onAIClick, onMobileMenuClick, isStudent }) {
                   justifyContent: 'center',
                 }}
               >
-                {isStudent ? (studentProfile?.avatar || 'RS') : 'AJ'}
+                {isStudent ? (currentStudent?.avatar || 'ST') : (adminProfile.name?.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'AU')}
               </div>
 
               {/* Name & Course metadata on desktop */}
               <div style={{ textAlign: 'left', lineHeight: 1.2, paddingRight: 4 }}>
                 <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {isStudent ? (studentProfile?.name || 'Rahul Sharma') : 'Admin User'}
+                  {isStudent ? (currentStudent?.name || 'Student') : adminProfile.name}
                 </div>
                 <div style={{ fontSize: '10.5px', color: 'var(--text-tertiary)' }}>
-                  {isStudent ? (studentProfile?.course || 'B.Tech CSE') : 'Super Admin'}
+                  {isStudent ? (currentStudent?.course || 'Student') : (adminProfile.title || 'Hostel Administrator')}
                 </div>
               </div>
             </button>
@@ -220,17 +240,17 @@ export default function Topbar({ onAIClick, onMobileMenuClick, isStudent }) {
               }}>
                 <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)' }}>
                   <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
-                    {isStudent ? (studentProfile?.name || 'Rahul Sharma') : 'Admin User'}
+                    {isStudent ? (currentStudent?.name || 'Student') : adminProfile.name}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: 2 }}>
-                    {isStudent ? 'rahul.sharma@matchomate.com' : 'admin@matchomate.com'}
+                    {isStudent ? (currentStudent?.email || 'student@matchomate.com') : adminProfile.email}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                     <span className="badge badge--success" style={{ fontSize: '9.5px', padding: '1px 6px' }}>
-                      ● Active In Hostel
+                      {isStudent ? (currentStudent?.status === 'on-leave' ? '● On Leave' : '● Active In Hostel') : '● Administrator'}
                     </span>
                     <span style={{ fontSize: '10.5px', color: 'var(--text-quaternary)' }}>
-                      Room B-304
+                      {isStudent ? `Room ${currentStudent?.room || 'Unassigned'}` : (adminProfile.title || 'Hostel Administrator')}
                     </span>
                   </div>
                 </div>

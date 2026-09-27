@@ -24,6 +24,8 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const [authError, setAuthError] = useState('');
+  const [showDemoCredentials, setShowDemoCredentials] = useState(false);
 
   // Feature carousel data
   const featureHighlights = [
@@ -71,6 +73,7 @@ export default function LoginPage() {
 
   const handleRoleChange = (selectedRole) => {
     setRole(selectedRole);
+    setAuthError('');
     if (selectedRole === 'admin') {
       setEmail('admin@matchomate.com');
       setPassword('admin123');
@@ -82,6 +85,14 @@ export default function LoginPage() {
 
   const handleLogin = (e) => {
     if (e) e.preventDefault();
+    const credentials = role === 'admin'
+      ? { email: 'admin@matchomate.com', password: 'admin123' }
+      : { email: 'student@matchomate.com', password: 'student123' };
+    if (email.trim().toLowerCase() !== credentials.email || password !== credentials.password) {
+      setAuthError('Email or password does not match this demo account.');
+      return;
+    }
+    setAuthError('');
     setIsLoading(true);
     setLoadingText('Connecting to ABC Residency Gate Network...');
     
@@ -112,6 +123,7 @@ export default function LoginPage() {
     setRole(selectedRole);
     setEmail(customEmail);
     setPassword(customPass);
+    setAuthError('');
     setIsLoading(true);
     setLoadingText(`Logging in as ${selectedRole === 'student' ? 'Student' : 'Admin'}...`);
     setTimeout(() => {
@@ -652,12 +664,14 @@ export default function LoginPage() {
                   <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     Portal Password
                   </label>
-                  <span
-                    onClick={() => setForgotModalOpen(true)}
-                    style={{ fontSize: '11.5px', color: 'var(--accent-400)', cursor: 'pointer', fontWeight: 600 }}
-                  >
-                    Forgot password?
-                  </span>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <button type="button" onClick={() => setShowDemoCredentials((visible) => !visible)} style={{ fontSize: '11px', color: 'var(--accent-400)', cursor: 'pointer', background: 'none', border: 0, padding: 0 }}>
+                      Demo credentials
+                    </button>
+                    <button type="button" onClick={() => setForgotModalOpen(true)} style={{ fontSize: '11.5px', color: 'var(--accent-400)', cursor: 'pointer', fontWeight: 600, background: 'none', border: 0, padding: 0 }}>
+                      Forgot password?
+                    </button>
+                  </div>
                 </div>
                 <div style={{ position: 'relative' }}>
                   <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-quaternary)' }}>
@@ -717,6 +731,11 @@ export default function LoginPage() {
                   Remember my session on this device
                 </label>
               </div>
+
+              {showDemoCredentials && <p role="status" style={{ margin: 0, fontSize: 12, color: 'var(--text-tertiary)' }}>
+                {role === 'admin' ? 'admin@matchomate.com / admin123' : 'student@matchomate.com / student123'}
+              </p>}
+              {authError && <p role="alert" style={{ margin: 0, fontSize: 12, color: 'var(--danger-500)' }}>{authError}</p>}
 
               {/* Submit Main Button */}
               <button

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter, X, ChevronLeft, ChevronRight, User, Mail, Phone, MapPin, BookOpen } from 'lucide-react';
+import { Search, Filter, X, User, Mail, Phone, MapPin, BookOpen, Plus } from 'lucide-react';
 import { useHostelStore } from '../context/HostelStore';
 import { inr } from '../components/ops/OpsShared';
 
@@ -13,20 +13,36 @@ const statusConfig = {
   active: { label: 'Active', class: 'badge--success' },
   'on-leave': { label: 'On Leave', class: 'badge--warning' },
   inactive: { label: 'Inactive', class: 'badge--default' },
+  onboarding: { label: 'Profile Incomplete', class: 'badge--default' },
 };
 
 export default function StudentsPage() {
-  const { students, payments, attendance, today } = useHostelStore();
+  const { students, payments, attendance, today, addStudent } = useHostelStore();
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newStudent, setNewStudent] = useState({ name: '', email: '', phone: '', course: '', year: '1', city: '' });
   const selectedStudent = students.find((s) => s.id === selectedId) || null;
 
   const filtered = students.filter((s) => {
+    if (statusFilter !== 'all' && s.status !== statusFilter) return false;
+    if (paymentFilter !== 'all' && s.payment !== paymentFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
-    return s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || s.room.toLowerCase().includes(q);
+    return s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || (s.room || '').toLowerCase().includes(q);
   });
+
+  const handleAddStudent = (event) => {
+    event.preventDefault();
+    if (!newStudent.name.trim() || !newStudent.email.trim() || !newStudent.phone.trim() || !newStudent.course.trim()) return;
+    addStudent(newStudent);
+    setNewStudent({ name: '', email: '', phone: '', course: '', year: '1', city: '' });
+    setAddModalOpen(false);
+  };
 
   return (
     <div className="page-content">
@@ -36,8 +52,8 @@ export default function StudentsPage() {
             <h1 className="page-header__greeting">Students</h1>
             <p className="page-header__subtitle">Manage student records, profiles, and hostel assignments.</p>
           </div>
-          <button className="btn btn--primary">
-            <User size={15} />
+          <button type="button" className="btn btn--primary" onClick={() => setAddModalOpen(true)}>
+            <Plus size={15} />
             Add Student
           </button>
         </div>
@@ -59,7 +75,7 @@ export default function StudentsPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button className="btn btn--secondary btn--sm">
+          <button type="button" className="btn btn--secondary btn--sm" onClick={() => setFiltersOpen((open) => !open)} aria-expanded={filtersOpen}>
             <Filter size={14} />
             Filters
           </button>
@@ -67,6 +83,11 @@ export default function StudentsPage() {
             {filtered.length} students
           </span>
         </div>
+
+        {filtersOpen && <div className="data-table-toolbar" style={{ gap: 12, borderTop: '1px solid var(--border-primary)' }}>
+          <label className="input-wrapper"><span className="input-label">Student status</span><select className="ops-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">All statuses</option><option value="active">Active</option><option value="on-leave">On leave</option><option value="onboarding">Profile incomplete</option><option value="inactive">Inactive</option></select></label>
+          <label className="input-wrapper"><span className="input-label">Payment status</span><select className="ops-select" value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)}><option value="all">All payments</option><option value="paid">Paid</option><option value="pending">Pending</option><option value="overdue">Overdue</option></select></label>
+        </div>}
 
         <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
@@ -105,15 +126,15 @@ export default function StudentsPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div className="progress-bar" style={{ width: 50, height: 4 }}>
                           <div className="progress-bar__fill" style={{
-                            width: `${student.compatibility}%`,
-                            background: student.compatibility >= 70 ? 'var(--success-500)' : 'var(--danger-500)',
+                            width: `${student.compatibility ?? 0}%`,
+                            background: student.compatibility == null ? 'var(--gray-300)' : student.compatibility >= 70 ? 'var(--success-500)' : 'var(--danger-500)',
                           }} />
                         </div>
                         <span style={{
                           fontSize: 'var(--font-xs)', fontWeight: 600,
-                          color: student.compatibility >= 70 ? 'var(--success-600)' : 'var(--danger-600)',
+                          color: student.compatibility == null ? 'var(--text-tertiary)' : student.compatibility >= 70 ? 'var(--success-600)' : 'var(--danger-600)',
                         }}>
-                          {student.compatibility}%
+                          {student.compatibility == null ? 'Pending' : `${student.compatibility}%`}
                         </span>
                       </div>
                     </td>
@@ -153,13 +174,23 @@ export default function StudentsPage() {
 
         <div className="data-table-pagination">
           <span>Showing 1–{filtered.length} of {filtered.length}</span>
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button className="btn btn--ghost btn--sm btn--icon"><ChevronLeft size={16} /></button>
-            <button className="btn btn--primary btn--sm" style={{ minWidth: 32 }}>1</button>
-            <button className="btn btn--ghost btn--sm btn--icon"><ChevronRight size={16} /></button>
-          </div>
+          <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)' }}>All demo records shown</span>
         </div>
       </div>
+
+      {addModalOpen && <div className="drawer-overlay" onClick={() => setAddModalOpen(false)}>
+        <section className="drawer" role="dialog" aria-modal="true" aria-labelledby="add-student-title" onClick={(event) => event.stopPropagation()}>
+          <div className="drawer__header"><h2 id="add-student-title" className="drawer__title">Add Student</h2><button type="button" className="btn btn--ghost btn--icon" onClick={() => setAddModalOpen(false)}><X size={18} /></button></div>
+          <form className="drawer__body" onSubmit={handleAddStudent} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[
+              ['name', 'Full name', 'text'], ['email', 'Email', 'email'], ['phone', 'Phone', 'tel'],
+              ['course', 'Course', 'text'], ['year', 'Year', 'number'], ['city', 'City', 'text'],
+            ].map(([key, label, type]) => <label key={key} className="input-wrapper"><span className="input-label">{label}</span><input className="ops-input" type={type} min={type === 'number' ? 1 : undefined} max={type === 'number' ? 8 : undefined} required={key !== 'city'} value={newStudent[key]} onChange={(event) => setNewStudent((previous) => ({ ...previous, [key]: event.target.value }))} /></label>)}
+            <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)' }}>New students enter onboarding without a room or compatibility score until their profile is completed.</p>
+            <button type="submit" className="btn btn--primary">Add to onboarding</button>
+          </form>
+        </section>
+      </div>}
 
       {/* Student Profile Drawer */}
       {selectedStudent && (

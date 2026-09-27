@@ -3,19 +3,43 @@ import { BedDouble, CheckCircle, Wifi, Wind, ShieldCheck, Wrench, AlertTriangle,
 import { useHostelStore } from '../context/HostelStore';
 
 export default function StudentRoom() {
-  const { currentStudent, showToast, addComplaint } = useHostelStore();
+  const { currentStudent, students, rooms, showToast, addComplaint } = useHostelStore();
   const [reportModal, setReportModal] = useState(false);
   const [changeModal, setChangeModal] = useState(false);
   const [issueDesc, setIssueDesc] = useState('');
   const [issueCat, setIssueCat] = useState('Electrical');
   const [changeReason, setChangeReason] = useState('');
 
-  const roommates = [
-    { bed: 'A', name: `${currentStudent?.name || 'Rahul Sharma'} (You)`, status: 'Occupied', roll: currentStudent?.id || 'STU001', course: 'B.Tech CSE Year 3' },
-    { bed: 'B', name: 'Aman Kumar', status: 'Occupied', roll: 'STU003', course: 'B.Tech ME Year 3' },
-    { bed: 'C', name: 'Kunal Verma', status: 'Vacant (Allocated)', roll: 'STU018', course: 'B.Tech IT Year 3' },
-    { bed: 'D', name: 'Available', status: 'Available', roll: '—', course: 'Open for smart allocation' },
-  ];
+  const currentRoom = rooms.find((room) => room.number === currentStudent?.room);
+  const roomCapacity = currentRoom?.capacity || 0;
+  const bedLabels = Array.from({ length: roomCapacity }, (_, index) => String.fromCharCode(65 + index));
+  const roomOccupants = students
+    .filter((student) => student.room === currentStudent?.room)
+    .sort((a, b) => Number(b.id === currentStudent?.id) - Number(a.id === currentStudent?.id));
+  const usedBeds = new Set();
+  const roommates = roomOccupants.slice(0, roomCapacity).map((student) => {
+    const preferredBed = student.bed && bedLabels.includes(student.bed) && !usedBeds.has(student.bed)
+      ? student.bed
+      : bedLabels.find((bed) => !usedBeds.has(bed));
+    if (preferredBed) usedBeds.add(preferredBed);
+    return {
+      bed: preferredBed,
+      name: student.id === currentStudent?.id ? `${student.name} (You)` : student.name,
+      status: 'Occupied',
+      course: `${student.course} · Year ${student.year}`,
+    };
+  });
+  const occupiedCount = Math.min(roomCapacity, Math.max(roommates.length, currentRoom?.occupied || 0));
+  const unknownOccupants = Math.max(0, occupiedCount - roommates.length);
+  for (let index = 0; index < unknownOccupants; index += 1) {
+    const bed = bedLabels.find((label) => !usedBeds.has(label));
+    if (!bed) break;
+    usedBeds.add(bed);
+    roommates.push({ bed, name: 'Occupied bed', status: 'Occupied', course: 'Resident details unavailable' });
+  }
+  bedLabels.forEach((bed) => {
+    if (!usedBeds.has(bed)) roommates.push({ bed, name: 'Available', status: 'Available', course: 'Open for allocation' });
+  });
 
   const amenities = [
     { icon: Wind, name: 'Split Air Conditioner', detail: 'Carrier 1.5 Ton · Serviced 10 Sep' },
@@ -27,14 +51,20 @@ export default function StudentRoom() {
   const handleSubmitIssue = (e) => {
     e.preventDefault();
     if (!issueDesc.trim()) return;
-    addComplaint({ category: issueCat, description: `[Room B-304] ${issueDesc}`, priority: 'medium' });
+    addComplaint({ category: issueCat, description: `[Room ${currentStudent?.room || 'unassigned'}] ${issueDesc}`, priority: 'medium' });
     setIssueDesc('');
     setReportModal(false);
   };
 
   const handleRequestChange = (e) => {
     e.preventDefault();
-    showToast('Room change application submitted to Warden Mehta.');
+    if (!changeReason.trim()) return;
+    const requestId = addComplaint({
+      category: 'Other',
+      priority: 'medium',
+      description: `Room-change request from ${currentStudent?.room || 'unassigned'}: ${changeReason.trim()}`,
+    });
+    showToast(`Room-change request ${requestId} submitted to the Warden.`);
     setChangeReason('');
     setChangeModal(false);
   };
@@ -47,10 +77,10 @@ export default function StudentRoom() {
           Hostel Living
         </span>
         <h1 style={{ fontSize: 'var(--font-2xl)', fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>
-          My Room: {currentStudent?.room || 'B-304'}
+          My Room: {currentStudent?.room || 'Unassigned'}
         </h1>
         <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-tertiary)', marginTop: 2 }}>
-          Block B · 3rd Floor · Quad Sharing Room · Bed {currentStudent?.bed || 'A'}
+          Block {currentRoom?.block || '—'} · Floor {currentRoom?.floor || '—'} · {currentRoom?.type || 'Room'} ({roomCapacity}-Bed) · Bed {currentStudent?.bed || '—'}
         </p>
       </div>
 
@@ -61,11 +91,11 @@ export default function StudentRoom() {
             <div>
               <div style={{ fontSize: 'var(--font-xs)', color: 'var(--accent-700)', fontWeight: 600 }}>HOSTEL RESIDENCY STATUS</div>
               <div style={{ fontSize: 'var(--font-3xl)', fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }}>
-                Room {currentStudent?.room || 'B-304'}
+                Room {currentStudent?.room || 'Unassigned'}
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 <span className="badge badge--success">Assigned & Active</span>
-                <span className="badge badge--default">Quad Sharing (4-Bed)</span>
+                <span className="badge badge--default">{currentRoom?.type || 'Room'} ({roomCapacity}-Bed)</span>
                 <span className="badge badge--accent">Balcony Attached</span>
               </div>
             </div>
@@ -85,7 +115,7 @@ export default function StudentRoom() {
         <div className="card" style={{ padding: 'var(--space-5)' }}>
           <h3 style={{ fontSize: 'var(--font-base)', fontWeight: 700, marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <BedDouble size={18} style={{ color: 'var(--accent-600)' }} />
-            Bed Allocations in Room {currentStudent?.room || 'B-304'}
+            Bed Allocations in Room {currentStudent?.room || 'Unassigned'}
           </h3>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-3)' }}>
@@ -94,17 +124,17 @@ export default function StudentRoom() {
                 key={rm.bed}
                 style={{
                   padding: 'var(--space-3) var(--space-4)',
-                  background: rm.bed === currentStudent?.bed ? 'var(--accent-50)' : 'var(--bg-tertiary)',
+                  background: rm.name.includes('(You)') ? 'var(--accent-50)' : 'var(--bg-tertiary)',
                   borderRadius: 'var(--radius-md)',
-                  border: rm.bed === currentStudent?.bed ? '1.5px solid var(--accent-400)' : '1px solid var(--border-primary)',
+                  border: rm.name.includes('(You)') ? '1.5px solid var(--accent-400)' : '1px solid var(--border-primary)',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <span style={{ fontSize: 'var(--font-xs)', fontWeight: 700, color: rm.bed === currentStudent?.bed ? 'var(--accent-700)' : 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: 'var(--font-xs)', fontWeight: 700, color: rm.name.includes('(You)') ? 'var(--accent-700)' : 'var(--text-secondary)' }}>
                     BED {rm.bed}
                   </span>
-                  <span className={`badge ${rm.bed === currentStudent?.bed ? 'badge--success' : rm.status === 'Available' ? 'badge--default' : 'badge--accent'}`} style={{ fontSize: '10px' }}>
-                    {rm.bed === currentStudent?.bed ? 'Your Bed' : rm.status.split(' ')[0]}
+                  <span className={`badge ${rm.name.includes('(You)') ? 'badge--success' : rm.status === 'Available' ? 'badge--default' : 'badge--accent'}`} style={{ fontSize: '10px' }}>
+                    {rm.name.includes('(You)') ? 'Your Bed' : rm.status}
                   </span>
                 </div>
                 <div style={{ fontSize: 'var(--font-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -180,7 +210,7 @@ export default function StudentRoom() {
 
               <div>
                 <label style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--text-tertiary)', display: 'block', marginBottom: 4 }}>
-                  Description of Issue in Room B-304
+                  Description of Issue in Room {currentStudent?.room || 'Unassigned'}
                 </label>
                 <textarea
                   className="ops-select"

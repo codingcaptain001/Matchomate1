@@ -12,6 +12,7 @@ export default function StudentLeave() {
     leaveRequests,
     applyLeave,
     today,
+    showToast,
   } = useHostelStore();
 
   const [filter, setFilter] = useState('all');
@@ -21,11 +22,11 @@ export default function StudentLeave() {
   // Form State
   const [leaveType, setLeaveType] = useState('Home visit');
   const [fromDate, setFromDate] = useState(today);
-  const [toDate, setToDate] = useState('2026-09-29');
-  const [destination, setDestination] = useState('Jaipur, Rajasthan');
-  const [reason, setReason] = useState('Festival celebration with family & Diwali preparation.');
+  const [toDate, setToDate] = useState('');
+  const [destination, setDestination] = useState('');
+  const [reason, setReason] = useState('');
   const [parentContact, setParentContact] = useState(currentStudent?.guardianPhone || '+91 98100 11111');
-  const [parentConsent, setParentConsent] = useState(true);
+  const [parentConsent, setParentConsent] = useState(false);
 
   // Filter requests for current student
   const myLeaves = leaveRequests.filter((l) => l.studentId === currentStudent?.id);
@@ -40,11 +41,14 @@ export default function StudentLeave() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!reason.trim()) return;
+    if (toDate < fromDate) {
+      showToast('The return date must be on or after the departure date.');
+      return;
+    }
 
-    // Calculate days approx
     const d1 = new Date(fromDate);
     const d2 = new Date(toDate);
-    const diffTime = Math.abs(d2 - d1);
+    const diffTime = d2 - d1;
     const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
     applyLeave({
@@ -58,8 +62,9 @@ export default function StudentLeave() {
     });
 
     setIsApplyModalOpen(false);
-    // Reset defaults
     setReason('');
+    setDestination('');
+    setToDate('');
   };
 
   const getStatusBadge = (status) => {
@@ -269,8 +274,9 @@ export default function StudentLeave() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label className="ops-label">From Date</label>
+                  <label className="ops-label" htmlFor="leave-from-date">From Date</label>
                   <input
+                    id="leave-from-date"
                     type="date"
                     className="ops-input"
                     style={{ width: '100%' }}
@@ -280,8 +286,9 @@ export default function StudentLeave() {
                   />
                 </div>
                 <div>
-                  <label className="ops-label">To Date</label>
+                  <label className="ops-label" htmlFor="leave-to-date">To Date</label>
                   <input
+                    id="leave-to-date"
                     type="date"
                     className="ops-input"
                     style={{ width: '100%' }}
@@ -293,8 +300,9 @@ export default function StudentLeave() {
               </div>
 
               <div>
-                <label className="ops-label">Destination City & Address</label>
+                <label className="ops-label" htmlFor="leave-destination">Destination City & Address</label>
                 <input
+                  id="leave-destination"
                   type="text"
                   className="ops-input"
                   style={{ width: '100%' }}
@@ -306,8 +314,9 @@ export default function StudentLeave() {
               </div>
 
               <div>
-                <label className="ops-label">Detailed Reason for Leave</label>
+                <label className="ops-label" htmlFor="leave-reason">Detailed Reason for Leave</label>
                 <textarea
+                  id="leave-reason"
                   className="ops-input"
                   style={{ width: '100%', minHeight: 70, resize: 'vertical' }}
                   value={reason}

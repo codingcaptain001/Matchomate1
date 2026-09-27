@@ -7,7 +7,6 @@ import AICopilot from './components/AICopilot';
 
 // Pages
 import LoginPage from './pages/LoginPage';
-import GenericPage from './pages/GenericPage';
 
 // Admin Pages
 import AdminDashboard from './pages/AdminDashboard';
@@ -24,6 +23,11 @@ import AdminMaintenancePage from './pages/AdminMaintenancePage';
 import AdminVisitorsPage from './pages/AdminVisitorsPage';
 import AdminLeavePage from './pages/AdminLeavePage';
 import AdminMessPage from './pages/AdminMessPage';
+import AdminInsightsPage from './pages/AdminInsightsPage';
+import AdminReportsPage from './pages/AdminReportsPage';
+import AdminSettingsPage from './pages/AdminSettingsPage';
+import AdminHelpPage from './pages/AdminHelpPage';
+import AdminProfilePage from './pages/AdminProfilePage';
 
 // Student Pages
 import StudentDashboard from './pages/StudentDashboard';
@@ -57,11 +61,12 @@ function AppLayout({ children, role }) {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setAiOpen((prev) => !prev);
+        window.dispatchEvent(new Event('matchomate:open-search'));
       }
       if (e.key === 'Escape' && aiOpen) {
         setAiOpen(false);
       }
+      if (e.key === 'Escape') window.dispatchEvent(new Event('matchomate:close-search'));
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -106,7 +111,7 @@ function App() {
               <Route path="smart-allocation" element={<SmartAllocationPage />} />
               <Route path="complaints" element={<ComplaintsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="announcements" element={<AnnouncementsPage />} />
+              <Route path="announcements" element={<AnnouncementsPage audience="admin" />} />
               
               {/* Admin Operations Pages */}
               <Route path="attendance" element={<AdminAttendancePage />} />
@@ -115,11 +120,11 @@ function App() {
               <Route path="visitors" element={<AdminVisitorsPage />} />
               <Route path="payments" element={<AdminPaymentsPage />} />
               <Route path="mess" element={<AdminMessPage />} />
-              <Route path="ai-insights" element={<GenericPage title="AI Insights" description="Deep predictive analytics for hostel operations." />} />
-              <Route path="reports" element={<GenericPage title="Reports" description="Generate printable compliance reports." />} />
-              <Route path="settings" element={<GenericPage title="Settings" description="Configure hostel rules and application preferences." />} />
-              <Route path="help" element={<GenericPage title="Help & Support" description="Documentation and support tickets." />} />
-              <Route path="profile" element={<GenericPage title="Admin Profile" description="Your account details and security." />} />
+              <Route path="ai-insights" element={<AdminInsightsPage />} />
+              <Route path="reports" element={<AdminReportsPage />} />
+              <Route path="settings" element={<AdminSettingsPage />} />
+              <Route path="help" element={<AdminHelpPage />} />
+              <Route path="profile" element={<AdminProfilePage />} />
               
               <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
             </Routes>
@@ -140,7 +145,7 @@ function App() {
               <Route path="leave" element={<StudentLeave />} />
               <Route path="visitors" element={<StudentVisitors />} />
               <Route path="mess" element={<StudentMess />} />
-              <Route path="announcements" element={<AnnouncementsPage />} />
+              <Route path="announcements" element={<AnnouncementsPage audience="student" />} />
               <Route path="profile" element={<StudentProfile />} />
               <Route path="settings" element={<StudentSettings />} />
               <Route path="help" element={<StudentHelp />} />

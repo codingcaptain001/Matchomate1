@@ -9,7 +9,7 @@ export default function StudentComplaints() {
   const [priority, setPriority] = useState('medium');
   const [description, setDescription] = useState('');
 
-  const myComplaints = complaints.filter((c) => c.studentId === currentStudent?.id || c.studentId === 'STU001');
+  const myComplaints = complaints.filter((c) => c.studentId === currentStudent?.id);
 
   const handleSubmit = (e) => {
     e.preventDefault();

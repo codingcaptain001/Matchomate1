@@ -19,12 +19,12 @@ export default function StudentVisitors() {
   const [selectedVisitor, setSelectedVisitor] = useState(null);
 
   // Form State
-  const [visitorName, setVisitorName] = useState('Sunil Sharma');
+  const [visitorName, setVisitorName] = useState('');
   const [relation, setRelation] = useState('Father');
-  const [phone, setPhone] = useState('+91 98100 11111');
-  const [purpose, setPurpose] = useState('Weekend semester visit and delivering documents');
-  const [expectedAt, setExpectedAt] = useState(`${today} 16:30`);
-  const [vehicle, setVehicle] = useState('DL 3C AB 4590 (Car)');
+  const [phone, setPhone] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const [expectedAt, setExpectedAt] = useState(`${today}T16:30`);
+  const [vehicle, setVehicle] = useState('Walk-in');
   const [idProof, setIdProof] = useState('Aadhaar Card');
 
   const myVisitors = visitors.filter((v) => v.studentId === currentStudent?.id);
@@ -44,13 +44,17 @@ export default function StudentVisitors() {
       relation,
       phone,
       purpose,
-      expectedAt,
+      expectedAt: expectedAt.replace('T', ' '),
       vehicle,
       idProof,
     });
 
     setIsModalOpen(false);
     setVisitorName('');
+    setPhone('');
+    setPurpose('');
+    setExpectedAt(`${today}T16:30`);
+    setVehicle('Walk-in');
   };
 
   const getStatusBadge = (status) => {
@@ -243,8 +247,9 @@ export default function StudentVisitors() {
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
               <div>
-                <label className="ops-label">Visitor Full Name</label>
+                <label className="ops-label" htmlFor="visitor-name">Visitor Full Name</label>
                 <input
+                  id="visitor-name"
                   type="text"
                   className="ops-input"
                   style={{ width: '100%' }}
@@ -257,8 +262,9 @@ export default function StudentVisitors() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label className="ops-label">Relation to Student</label>
+                  <label className="ops-label" htmlFor="visitor-relation">Relation to Student</label>
                   <select
+                    id="visitor-relation"
                     className="ops-select"
                     style={{ width: '100%' }}
                     value={relation}
@@ -272,8 +278,9 @@ export default function StudentVisitors() {
                   </select>
                 </div>
                 <div>
-                  <label className="ops-label">Phone Number</label>
+                  <label className="ops-label" htmlFor="visitor-phone">Phone Number</label>
                   <input
+                    id="visitor-phone"
                     type="tel"
                     className="ops-input"
                     style={{ width: '100%' }}
@@ -285,9 +292,10 @@ export default function StudentVisitors() {
               </div>
 
               <div>
-                <label className="ops-label">Expected Date & Time</label>
+                <label className="ops-label" htmlFor="visitor-expected-at">Expected Date & Time</label>
                 <input
-                  type="text"
+                  id="visitor-expected-at"
+                  type="datetime-local"
                   className="ops-input"
                   style={{ width: '100%' }}
                   value={expectedAt}
@@ -298,8 +306,9 @@ export default function StudentVisitors() {
               </div>
 
               <div>
-                <label className="ops-label">Purpose of Visit</label>
+                <label className="ops-label" htmlFor="visitor-purpose">Purpose of Visit</label>
                 <input
+                  id="visitor-purpose"
                   type="text"
                   className="ops-input"
                   style={{ width: '100%' }}
@@ -312,8 +321,9 @@ export default function StudentVisitors() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label className="ops-label">Vehicle Registration</label>
+                  <label className="ops-label" htmlFor="visitor-vehicle">Vehicle Registration</label>
                   <input
+                    id="visitor-vehicle"
                     type="text"
                     className="ops-input"
                     style={{ width: '100%' }}
@@ -323,8 +333,9 @@ export default function StudentVisitors() {
                   />
                 </div>
                 <div>
-                  <label className="ops-label">ID Proof to Produce</label>
+                  <label className="ops-label" htmlFor="visitor-id-proof">ID Proof to Produce</label>
                   <select
+                    id="visitor-id-proof"
                     className="ops-select"
                     style={{ width: '100%' }}
                     value={idProof}
