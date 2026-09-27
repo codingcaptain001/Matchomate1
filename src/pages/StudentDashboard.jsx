@@ -28,6 +28,12 @@ export default function StudentDashboard() {
     showToast,
   } = useHostelStore();
 
+    const assignedRoommates = students.filter(
+    (student) =>
+      student.room === currentStudent?.room &&
+      student.id !== currentStudent?.id
+  );
+
   const [payingModal, setPayingModal] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('UPI');
   const [compatibilityModal, setCompatibilityModal] = useState(false);
