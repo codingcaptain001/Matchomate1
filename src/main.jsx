@@ -4,11 +4,14 @@ import './index.css'
 import './App.css'
 import App from './App.jsx'
 import { HostelProvider } from './context/HostelStore.jsx'
+import { ThemeProvider } from './context/ThemeContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <HostelProvider>
-      <App />
-    </HostelProvider>
+    <ThemeProvider>
+      <HostelProvider>
+        <App />
+      </HostelProvider>
+    </ThemeProvider>
   </StrictMode>,
 )
