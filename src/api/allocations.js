@@ -1,6 +1,6 @@
 import { getCompatibility } from './matching';
 
-export async function generateAllocations({ students, rooms, targetBlocks, priority }) {
+export async function generateAllocations({ students, rooms, targetBlocks, priority, avoidPairs = [], variation = 0 }) {
   if (students.length < 1) {
     throw new Error('Select at least one student.');
   }
@@ -19,6 +19,20 @@ export async function generateAllocations({ students, rooms, targetBlocks, prior
     }))
     .filter((room) => room.freeBeds > 0)
     .sort((a, b) => b.freeBeds - a.freeBeds || a.room.number.localeCompare(b.room.number));
+
+  // Rotate rooms with equal capacity on each regeneration so the preview can
+  // show a different valid placement when multiple rooms are interchangeable.
+  if (variation > 0) {
+    let start = 0;
+    while (start < availableRooms.length) {
+      let end = start + 1;
+      while (end < availableRooms.length && availableRooms[end].freeBeds === availableRooms[start].freeBeds) end += 1;
+      const group = availableRooms.slice(start, end);
+      const offset = variation % group.length;
+      availableRooms.splice(start, group.length, ...group.slice(offset), ...group.slice(0, offset));
+      start = end;
+    }
+  }
 
   const totalFreeBeds = availableRooms.reduce((sum, r) => sum + r.freeBeds, 0);
 
@@ -48,6 +62,7 @@ export async function generateAllocations({ students, rooms, targetBlocks, prior
     if (priority === 'course' && a.sameCourse !== b.sameCourse) return a.sameCourse ? -1 : 1;
     return b.score - a.score;
   });
+  const avoidedPairKeys = new Set(avoidPairs.map((pair) => [...pair].sort().join('|')));
 
   const allocations = [];
   const unpaired = new Set(students.map((student) => student.id));
@@ -56,15 +71,21 @@ export async function generateAllocations({ students, rooms, targetBlocks, prior
     if (unpaired.size === 0) break;
 
     const allocatedToRoom = [];
+    const pairedGroups = [];
     let roomScore = 0;
     let roomStrengths = [];
     let roomDifferences = [];
 
     // Try to add pairs if freeBeds >= 2
     while (candidate.freeBeds >= 2 && unpaired.size >= 2) {
-      const bestPair = sortedPairs.find(({ students: [studentA, studentB] }) => unpaired.has(studentA.id) && unpaired.has(studentB.id));
+      const bestPair = sortedPairs.find(({ students: [studentA, studentB] }) => (
+        unpaired.has(studentA.id)
+        && unpaired.has(studentB.id)
+        && !avoidedPairKeys.has([studentA.id, studentB.id].sort().join('|'))
+      ));
       if (bestPair) {
         allocatedToRoom.push(...bestPair.students);
+        pairedGroups.push(bestPair.students.map((student) => student.id));
         bestPair.students.forEach((s) => unpaired.delete(s.id));
         candidate.freeBeds -= 2;
         roomScore = bestPair.score;
@@ -92,6 +113,7 @@ export async function generateAllocations({ students, rooms, targetBlocks, prior
         score: allocatedToRoom.length > 1 ? roomScore : 100,
         strengths: roomStrengths,
         differences: roomDifferences,
+        pairs: pairedGroups,
         risk: allocatedToRoom.length > 1 ? (roomScore >= 75 ? 'low' : 'high') : 'low',
       });
     }

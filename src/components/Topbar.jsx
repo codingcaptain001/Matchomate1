@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  Search, Bell, Sparkles, ChevronDown, Menu, User, Settings, LogOut,
+  Search, Bell, Sparkles, ChevronDown, Menu, X, User, Settings, LogOut,
   Sun, Moon, Building, HelpCircle, ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +18,7 @@ function readAdminProfile() {
   }
 }
 
-export default function Topbar({ onAIClick, onMobileMenuClick, isStudent }) {
+export default function Topbar({ onAIClick, onMenuToggle, menuOpen = false, isStudent }) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [hostelModalOpen, setHostelModalOpen] = useState(false);
@@ -86,15 +86,16 @@ export default function Topbar({ onAIClick, onMobileMenuClick, isStudent }) {
   return (
     <>
       <header className="topbar">
-        {/* Mobile menu button */}
+        {/* Show or hide the main navigation menu */}
         <button
           className="topbar__action-btn"
-          onClick={onMobileMenuClick}
-          style={{ display: 'none' }}
+          onClick={onMenuToggle}
           id="mobile-menu-btn"
-          aria-label="Open menu"
+          title={menuOpen ? 'Close main menu' : 'Open main menu'}
+          aria-label={menuOpen ? 'Close main menu' : 'Open main menu'}
+          aria-expanded={menuOpen}
         >
-          <Menu size={20} />
+          {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
         {/* Workspace selector button (ABC Residency - B-304) */}

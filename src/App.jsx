@@ -53,9 +53,14 @@ function PageTransition({ children }) {
 }
 
 function AppLayout({ children, role }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const isStudent = role === 'student';
+  const location = useLocation();
+
+  useEffect(() => {
+    setMenuVisible(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -66,6 +71,7 @@ function AppLayout({ children, role }) {
       if (e.key === 'Escape' && aiOpen) {
         setAiOpen(false);
       }
+      if (e.key === 'Escape') setMenuVisible(false);
       if (e.key === 'Escape') window.dispatchEvent(new Event('matchomate:close-search'));
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -73,14 +79,25 @@ function AppLayout({ children, role }) {
   }, [aiOpen]);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${menuVisible ? 'app-shell--menu-open' : ''}`}>
+      {menuVisible && <button
+        className="sidebar-backdrop"
+        type="button"
+        onClick={() => setMenuVisible(false)}
+        aria-label="Close main menu"
+      />}
       {isStudent ? (
         <StudentSidebar />
       ) : (
-        <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+        <Sidebar />
       )}
-      <div className={`main-wrapper ${collapsed && !isStudent ? 'main-wrapper--collapsed' : ''}`}>
-        <Topbar isStudent={isStudent} onAIClick={() => setAiOpen(true)} />
+      <div className="main-wrapper">
+        <Topbar
+          isStudent={isStudent}
+          onAIClick={() => setAiOpen(true)}
+          onMenuToggle={() => setMenuVisible((visible) => !visible)}
+          menuOpen={menuVisible}
+        />
         <main className="main-content">
           <PageTransition>
             {children}

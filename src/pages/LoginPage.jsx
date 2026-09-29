@@ -142,7 +142,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{
+    <div className="login-page" style={{
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
@@ -183,7 +183,7 @@ export default function LoginPage() {
       }} />
 
       {/* Top Header Bar */}
-      <header style={{
+      <header className="login-header" style={{
         padding: '18px 36px',
         display: 'flex',
         justifyContent: 'space-between',
@@ -210,7 +210,7 @@ export default function LoginPage() {
             <div style={{ fontSize: '19px', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-primary)' }}>
               MatchoMate
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+            <div className="login-brand-tagline" style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600 }}>
               AI Student Housing & Operations OS
             </div>
           </div>
@@ -219,7 +219,7 @@ export default function LoginPage() {
         {/* Right header actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {/* Live Gate Status Pill */}
-          <div style={{
+          <div className="login-gate-status" style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -261,7 +261,7 @@ export default function LoginPage() {
       </header>
 
       {/* Main Content Area */}
-      <main style={{
+      <main className="login-main" style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -270,7 +270,7 @@ export default function LoginPage() {
         zIndex: 10,
         flex: 1,
       }}>
-        <div style={{
+        <div className="login-layout" style={{
           maxWidth: '1120px',
           width: '100%',
           display: 'grid',
@@ -307,11 +307,8 @@ export default function LoginPage() {
             }}>
               Smart Housing. <br />
               <span style={{
-                background: role === 'student'
-                  ? 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)'
-                  : 'linear-gradient(135deg, #818cf8 0%, #c084fc 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: role === 'student' ? '#059669' : '#6366f1',
+                transition: 'color 300ms ease',
               }}>
                 Instant Peace of Mind.
               </span>
@@ -335,7 +332,7 @@ export default function LoginPage() {
               padding: '16px',
               boxShadow: 'var(--shadow-card)',
             }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 12 }}>
+              <div className="login-feature-tabs" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 12 }}>
                 {featureHighlights.map((f, i) => {
                   const Icon = f.icon;
                   const isActive = activeFeatureTab === i;
@@ -930,7 +927,7 @@ export default function LoginPage() {
       )}
 
       {/* Footer Bar */}
-      <footer style={{
+      <footer className="login-footer" style={{
         padding: '16px 36px',
         borderTop: '1px solid var(--border-secondary)',
         display: 'flex',

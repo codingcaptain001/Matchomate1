@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, BedDouble, Brain, Shuffle, MessageSquareWarning,
   Wrench, ClipboardCheck, CalendarOff, UserCheck, CreditCard, UtensilsCrossed,
   Megaphone, BarChart3, Sparkles, FileText, Settings, HelpCircle, User,
-  PanelLeftClose, PanelLeft, Zap
+  Zap
 } from 'lucide-react';
 
 const mainNavItems = [
@@ -32,7 +32,7 @@ const bottomNavItems = [
   { label: 'Profile', icon: User, path: '/admin/profile' },
 ];
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { complaintStats, leaveRequests, students, maintenance } = useHostelStore();
@@ -50,7 +50,7 @@ export default function Sidebar({ collapsed, onToggle }) {
   };
 
   return (
-    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
+    <aside className="sidebar">
       {/* Brand */}
       <div className="sidebar__brand">
         <div className="sidebar__logo">
@@ -71,7 +71,7 @@ export default function Sidebar({ collapsed, onToggle }) {
               key={item.path}
               className={`sidebar__item ${isActive ? 'sidebar__item--active' : ''}`}
               onClick={() => navigate(item.path)}
-              title={collapsed ? item.label : undefined}
+              title={item.label}
             >
               <span className="sidebar__item-icon">
                 <Icon size={18} />
@@ -95,7 +95,7 @@ export default function Sidebar({ collapsed, onToggle }) {
               key={item.path}
               className={`sidebar__item ${isActive ? 'sidebar__item--active' : ''}`}
               onClick={() => navigate(item.path)}
-              title={collapsed ? item.label : undefined}
+              title={item.label}
             >
               <span className="sidebar__item-icon">
                 <Icon size={18} />
@@ -104,13 +104,6 @@ export default function Sidebar({ collapsed, onToggle }) {
             </button>
           );
         })}
-        <button
-          className="sidebar__collapse-btn"
-          onClick={onToggle}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
-        </button>
       </div>
     </aside>
   );

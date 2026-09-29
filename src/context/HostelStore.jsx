@@ -617,6 +617,7 @@ export function HostelProvider({ children }) {
     complaintStats,
     kpi,
     hostelHealth: seed.hostelHealth,
+    experienceData: seed.experienceData,
     occupancyData: seed.occupancyData,
     roommateIntelligence: seed.roommateIntelligence,
     aiAttentionItems: seed.aiAttentionItems,
