@@ -1,34 +1,34 @@
 import { useState } from 'react';
 import {
   CalendarOff, Plus, CheckCircle2, Clock, XCircle, AlertTriangle,
-  Calendar, MapPin, Phone, ShieldCheck, FileText, ArrowRight, UserCheck
+  Calendar, MapPin, Phone, ShieldCheck, FileText, UserCheck,
+  Search, ChevronRight, MoreVertical, Plane, Home, Stethoscope,
+  GraduationCap, PartyPopper, Sun
 } from 'lucide-react';
 import { useHostelStore } from '../context/HostelStore';
-import { OpsDrawer, formatDate } from '../components/ops/OpsShared';
+import { formatDate } from '../components/ops/OpsShared';
 
 export default function StudentLeave() {
-  const {
-    currentStudent,
-    leaveRequests,
-    applyLeave,
-    today,
-    showToast,
-  } = useHostelStore();
+  const { currentStudent, leaveRequests, applyLeave, today, showToast } = useHostelStore();
 
   const [filter, setFilter] = useState('all');
-  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState(null);
 
   // Form State
   const [leaveType, setLeaveType] = useState('Home visit');
-  const [fromDate, setFromDate] = useState(today);
-  const [toDate, setToDate] = useState('');
+  const [fromDate, setFromDate] = useState(today || new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    return d.toISOString().split('T')[0];
+  });
   const [destination, setDestination] = useState('');
   const [reason, setReason] = useState('');
   const [parentContact, setParentContact] = useState(currentStudent?.guardianPhone || '+91 98100 11111');
   const [parentConsent, setParentConsent] = useState(false);
+  const [formError, setFormError] = useState('');
 
-  // Filter requests for current student
   const myLeaves = leaveRequests.filter((l) => l.studentId === currentStudent?.id);
   const filteredLeaves = myLeaves.filter((l) => {
     if (filter === 'all') return true;
@@ -37,410 +37,472 @@ export default function StudentLeave() {
 
   const pendingCount = myLeaves.filter((l) => l.status === 'pending').length;
   const approvedCount = myLeaves.filter((l) => l.status === 'approved').length;
+  const rejectedCount = myLeaves.filter((l) => l.status === 'rejected').length;
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!reason.trim()) return;
+    if (e) e.preventDefault();
+    setFormError('');
+
+    if (!destination.trim()) {
+      const err = 'Please enter destination city & address';
+      setFormError(err);
+      showToast?.(err);
+      return;
+    }
+    if (!toDate) {
+      const err = 'Please select a return date';
+      setFormError(err);
+      showToast?.(err);
+      return;
+    }
     if (toDate < fromDate) {
-      showToast('The return date must be on or after the departure date.');
+      const err = 'The return date must be on or after the departure date';
+      setFormError(err);
+      showToast?.(err);
+      return;
+    }
+    if (!reason.trim()) {
+      const err = 'Please provide a detailed reason for leave';
+      setFormError(err);
+      showToast?.(err);
+      return;
+    }
+    if (!parentConsent) {
+      const err = 'Please confirm parent / guardian consent';
+      setFormError(err);
+      showToast?.(err);
       return;
     }
 
     const d1 = new Date(fromDate);
     const d2 = new Date(toDate);
-    const diffTime = d2 - d1;
-    const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    const diffDays = Math.max(1, Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) || 1);
 
     applyLeave({
       type: leaveType,
       from: fromDate,
       to: toDate,
       days: diffDays,
-      reason,
-      destination,
-      emergencyContact: parentContact,
+      reason: reason.trim(),
+      destination: destination.trim(),
+      emergencyContact: parentContact || currentStudent?.guardianPhone || '+91 98100 11111',
     });
 
-    setIsApplyModalOpen(false);
+    setIsDrawerOpen(false);
+    setFilter('all');
     setReason('');
     setDestination('');
-    setToDate('');
+    const nextD = new Date();
+    nextD.setDate(nextD.getDate() + 2);
+    setToDate(nextD.toISOString().split('T')[0]);
+    setParentConsent(false);
+    setFormError('');
   };
 
   const getStatusBadge = (status) => {
+    const base = { padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5, letterSpacing: '0.01em' };
     switch (status) {
       case 'approved':
-        return <span className="badge badge--success" style={{ gap: 4 }}><CheckCircle2 size={12} /> Approved</span>;
+        return <span style={{ ...base, color: '#059669', background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.15)' }}><CheckCircle2 size={13} /> Approved</span>;
       case 'pending':
-        return <span className="badge badge--warning" style={{ gap: 4 }}><Clock size={12} /> Pending Warden</span>;
+        return <span style={{ ...base, color: '#d97706', background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.15)' }}><Clock size={13} /> Pending Warden</span>;
       case 'rejected':
-        return <span className="badge badge--danger" style={{ gap: 4 }}><XCircle size={12} /> Rejected</span>;
+        return <span style={{ ...base, color: '#ef4444', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}><XCircle size={13} /> Rejected</span>;
       case 'completed':
-        return <span className="badge badge--info" style={{ gap: 4 }}><ShieldCheck size={12} /> Returned</span>;
+        return <span style={{ ...base, color: '#7c3aed', background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.15)' }}><ShieldCheck size={13} /> Returned</span>;
       default:
-        return <span className="badge badge--neutral">{status}</span>;
+        return <span style={{ ...base, color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}>{status}</span>;
     }
   };
 
+  const typeIcons = {
+    'Home visit': <Home size={18} />,
+    'Medical leave': <Stethoscope size={18} />,
+    'Academic / Conference': <GraduationCap size={18} />,
+    'Family function': <PartyPopper size={18} />,
+    'Weekend outing': <Sun size={18} />,
+  };
+  const typeColors = {
+    'Home visit': '#6366f1',
+    'Medical leave': '#ef4444',
+    'Academic / Conference': '#0ea5e9',
+    'Family function': '#f59e0b',
+    'Weekend outing': '#22c55e',
+  };
+
+  const inputStyle = {
+    width: '100%', padding: '11px 14px', borderRadius: 10, fontSize: 14, outline: 'none',
+    border: '1.5px solid var(--border-primary)', background: 'var(--bg-primary)', color: 'var(--text-primary)',
+    transition: 'border-color 0.2s',
+  };
+  const labelStyle = { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 6, letterSpacing: '0.01em' };
+
   return (
-    <div className="student-container" style={{ padding: 'var(--space-5) var(--space-4)', maxWidth: 960, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 'var(--space-5)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', padding: '40px 48px', position: 'relative' }}>
+
+      {/* ─── Header ─── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
         <div>
-          <span style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--accent-600)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Night & Vacation Permissions
-          </span>
-          <h1 style={{ fontSize: 'var(--font-2xl)', fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700,
+            color: '#6366f1', background: 'rgba(99,102,241,0.08)', padding: '5px 14px',
+            borderRadius: 20, marginBottom: 12, border: '1px solid rgba(99,102,241,0.15)',
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>
+            <Plane size={13} /> Night & Vacation Permissions
+          </div>
+          <h1 style={{ fontSize: 34, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px', letterSpacing: '-0.025em' }}>
             Hostel Leave Management
           </h1>
-          <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-tertiary)', marginTop: 2 }}>
+          <p style={{ fontSize: 15, color: 'var(--text-tertiary)', margin: 0 }}>
             Apply for home visits, medical leaves, and overnight gate out-passes with warden approval.
           </p>
         </div>
-        <button
-          className="btn btn--primary"
-          onClick={() => setIsApplyModalOpen(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', fontWeight: 600 }}
+        <button onClick={() => setIsDrawerOpen(true)} style={{
+          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white',
+          border: 'none', borderRadius: 12, padding: '12px 22px', fontSize: 14, fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(99,102,241,0.3)', transition: 'transform 0.2s, box-shadow 0.2s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.4)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.3)'; }}
         >
-          <Plus size={16} /> Apply New Leave
+          <Plus size={18} /> Apply New Leave
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-3)', marginBottom: 'var(--space-5)' }}>
-        <div className="card" style={{ padding: 'var(--space-4)', borderLeft: '4px solid var(--accent-500)' }}>
-          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)', fontWeight: 600 }}>TOTAL APPLICATIONS</div>
-          <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }}>
-            {myLeaves.length}
+      {/* ─── KPI Cards ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, marginBottom: 28 }}>
+        {[
+          { label: 'Total Applications', value: myLeaves.length, sub: 'This academic semester', icon: <CalendarOff size={22} />, gradient: 'linear-gradient(135deg, #6366f1, #818cf8)' },
+          { label: 'Pending Review', value: pendingCount, sub: 'Awaiting warden sign-off', icon: <Clock size={22} />, gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
+          { label: 'Approved Passes', value: approvedCount, sub: 'Gate QR code generated', icon: <CheckCircle2 size={22} />, gradient: 'linear-gradient(135deg, #059669, #34d399)' },
+          {
+            label: 'Guardian Consent', value: null, icon: <ShieldCheck size={22} />, gradient: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+            customValue: <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: '#059669', marginTop: 4 }}><CheckCircle2 size={16} /> Verified via SMS</div>,
+            sub: currentStudent?.guardianPhone || '+91 98100 11111',
+          },
+        ].map((kpi, i) => (
+          <div key={i} style={{
+            background: 'var(--bg-secondary)', borderRadius: 16, padding: 22,
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)',
+            display: 'flex', alignItems: 'center', gap: 16,
+            transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.03)'; }}
+          >
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: kpi.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+              {kpi.icon}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{kpi.label}</div>
+              {kpi.value !== null ? (
+                <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>{kpi.value}</div>
+              ) : kpi.customValue}
+              {kpi.sub && <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{kpi.sub}</div>}
+            </div>
           </div>
-          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: 2 }}>This academic semester</div>
-        </div>
-
-        <div className="card" style={{ padding: 'var(--space-4)', borderLeft: '4px solid var(--warning-500)' }}>
-          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--warning-700)', fontWeight: 600 }}>PENDING REVIEW</div>
-          <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 800, color: 'var(--warning-700)', marginTop: 4 }}>
-            {pendingCount}
-          </div>
-          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: 2 }}>Awaiting warden sign-off</div>
-        </div>
-
-        <div className="card" style={{ padding: 'var(--space-4)', borderLeft: '4px solid var(--success-500)' }}>
-          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--success-700)', fontWeight: 600 }}>APPROVED PASSES</div>
-          <div style={{ fontSize: 'var(--font-2xl)', fontWeight: 800, color: 'var(--success-700)', marginTop: 4 }}>
-            {approvedCount}
-          </div>
-          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: 2 }}>Gate QR code generated</div>
-        </div>
-
-        <div className="card" style={{ padding: 'var(--space-4)', borderLeft: '4px solid var(--primary-500)' }}>
-          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--primary-700)', fontWeight: 600 }}>GUARDIAN CONSENT</div>
-          <div style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--success-700)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
-            <CheckCircle2 size={16} /> Verified via SMS
-          </div>
-          <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: 2 }}>{currentStudent?.guardianPhone}</div>
-        </div>
+        ))}
       </div>
 
-      {/* Main Leave List Card */}
-      <div className="card" style={{ overflow: 'hidden' }}>
-        <div style={{
-          padding: 'var(--space-3) var(--space-4)',
-          borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 12,
-          background: 'var(--bg-card-header)'
-        }}>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {['all', 'pending', 'approved', 'completed'].map((f) => (
-              <button
-                key={f}
-                className={`btn btn--sm ${filter === f ? 'btn--primary' : 'btn--ghost'}`}
-                onClick={() => setFilter(f)}
-                style={{ textTransform: 'capitalize', fontSize: '12px' }}
-              >
-                {f} {f === 'all' ? `(${myLeaves.length})` : ''}
-              </button>
-            ))}
-          </div>
-          <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)' }}>
-            Showing {filteredLeaves.length} entries
-          </span>
+      {/* ─── Filters ─── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 6, background: 'var(--bg-secondary)', padding: 4, borderRadius: 12, border: '1px solid var(--border-primary)' }}>
+          {[
+            { key: 'all', label: `All (${myLeaves.length})` },
+            { key: 'pending', label: `Pending (${pendingCount})`, dot: '#f59e0b' },
+            { key: 'approved', label: `Approved (${approvedCount})`, dot: '#22c55e' },
+            { key: 'completed', label: 'Completed' },
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setFilter(tab.key)} style={{
+              padding: '8px 18px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              background: filter === tab.key ? 'var(--accent-500)' : 'transparent',
+              color: filter === tab.key ? 'white' : 'var(--text-secondary)',
+              display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s',
+            }}>
+              {tab.dot && <div style={{ width: 7, height: 7, borderRadius: '50%', background: tab.dot }} />}
+              {tab.label}
+            </button>
+          ))}
         </div>
+        <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Showing {filteredLeaves.length} entries</div>
+      </div>
 
+      {/* ─── Leave Cards ─── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {filteredLeaves.length === 0 ? (
-          <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-tertiary)' }}>
-            <CalendarOff size={40} style={{ margin: '0 auto 12px', opacity: 0.4 }} />
-            <h3 style={{ fontSize: 'var(--font-md)', fontWeight: 600, color: 'var(--text-primary)' }}>No leave records found</h3>
-            <p style={{ fontSize: 'var(--font-sm)', marginTop: 4 }}>You haven't requested any leaves matching this filter.</p>
+          <div style={{ background: 'var(--bg-secondary)', borderRadius: 16, border: '1px solid var(--border-primary)', padding: 60, textAlign: 'center' }}>
+            <CalendarOff size={44} color="var(--text-tertiary)" style={{ opacity: 0.3, marginBottom: 12 }} />
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>No leave records found</div>
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>You haven't requested any leaves matching this filter.</div>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {filteredLeaves.map((leave) => (
-              <div
-                key={leave.id}
-                onClick={() => setSelectedLeave(leave)}
-                style={{
-                  padding: 'var(--space-4)',
-                  borderBottom: '1px solid var(--border-color)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                className="hover-bg"
-              >
-                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        ) : filteredLeaves.map(leave => {
+          const iconColor = typeColors[leave.type] || '#6366f1';
+          const icon = typeIcons[leave.type] || <Calendar size={18} />;
+          return (
+            <div key={leave.id} onClick={() => setSelectedLeave(leave)} style={{
+              background: 'var(--bg-secondary)', borderRadius: 16, border: '1px solid var(--border-primary)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden',
+              transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'pointer',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              {/* Status accent bar */}
+              <div style={{
+                height: 3, background: leave.status === 'approved' ? 'linear-gradient(90deg, #059669, #34d399)' :
+                  leave.status === 'pending' ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' :
+                    leave.status === 'rejected' ? 'linear-gradient(90deg, #ef4444, #f87171)' :
+                      'linear-gradient(90deg, #8b5cf6, #a78bfa)',
+              }} />
+
+              <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 16, flex: 1, alignItems: 'flex-start' }}>
                   <div style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 'var(--radius-md)',
-                    background: leave.status === 'approved' ? 'rgba(22, 163, 74, 0.1)' : 'rgba(99, 102, 241, 0.1)',
-                    color: leave.status === 'approved' ? 'var(--success-600)' : 'var(--accent-600)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
+                    width: 44, height: 44, borderRadius: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: `${iconColor}12`, color: iconColor, border: `1px solid ${iconColor}20`,
                   }}>
-                    <Calendar size={20} />
+                    {icon}
                   </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 700, fontSize: 'var(--font-md)', color: 'var(--text-primary)' }}>
-                        {leave.type}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                        {leave.id}
-                      </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{leave.type}</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{leave.id}</span>
                       {getStatusBadge(leave.status)}
                     </div>
-                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: 4 }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Calendar size={13} /> {formatDate(leave.from)} → {formatDate(leave.to)} ({leave.days} {leave.days === 1 ? 'day' : 'days'})
+                    <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 13, color: 'var(--text-secondary)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Calendar size={14} color="var(--text-tertiary)" /> {formatDate(leave.from)} → {formatDate(leave.to)}
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', background: 'rgba(99,102,241,0.08)', padding: '2px 8px', borderRadius: 6 }}>{leave.days}d</span>
                       </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <MapPin size={13} /> {leave.destination}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <MapPin size={14} color="var(--text-tertiary)" /> {leave.destination}
                       </span>
                     </div>
-                    <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)', marginTop: 4, fontStyle: 'italic' }}>
+                    <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginTop: 6, fontStyle: 'italic', lineHeight: 1.5 }}>
                       "{leave.reason}"
                     </p>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)' }}>
-                  <ArrowRight size={16} />
-                </div>
+                <ChevronRight size={18} color="var(--text-tertiary)" style={{ flexShrink: 0, marginLeft: 16 }} />
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Apply Leave Modal */}
-      {isApplyModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsApplyModalOpen(false)}>
-          <div className="modal card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540, width: '90%', padding: 'var(--space-5)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-              <div>
-                <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Apply for Leave / Gate Out-Pass
-                </h3>
-                <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>
-                  Your warden and guardian will receive an instant notification.
-                </p>
-              </div>
-              <button className="btn btn--ghost btn--sm" onClick={() => setIsApplyModalOpen(false)}>✕</button>
-            </div>
-
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              <div>
-                <label className="ops-label">Leave Category</label>
-                <select
-                  className="ops-select"
-                  style={{ width: '100%' }}
-                  value={leaveType}
-                  onChange={(e) => setLeaveType(e.target.value)}
-                >
-                  <option>Home visit</option>
-                  <option>Medical leave</option>
-                  <option>Academic / Conference</option>
-                  <option>Family function</option>
-                  <option>Weekend outing</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label className="ops-label" htmlFor="leave-from-date">From Date</label>
-                  <input
-                    id="leave-from-date"
-                    type="date"
-                    className="ops-input"
-                    style={{ width: '100%' }}
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    required
-                  />
+      {/* ─── Apply Leave Drawer ─── */}
+      {isDrawerOpen && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 998 }} onClick={() => setIsDrawerOpen(false)} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: 440, background: 'var(--bg-secondary)', zIndex: 999,
+            boxShadow: '-8px 0 40px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column',
+            borderLeft: '1px solid var(--border-primary)',
+          }}>
+            <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Plane size={22} />
                 </div>
                 <div>
-                  <label className="ops-label" htmlFor="leave-to-date">To Date</label>
-                  <input
-                    id="leave-to-date"
-                    type="date"
-                    className="ops-input"
-                    style={{ width: '100%' }}
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    required
-                  />
+                  <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px', letterSpacing: '-0.01em' }}>Apply for Leave</h2>
+                  <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: 0 }}>Warden and guardian will receive instant notification.</p>
                 </div>
               </div>
-
-              <div>
-                <label className="ops-label" htmlFor="leave-destination">Destination City & Address</label>
-                <input
-                  id="leave-destination"
-                  type="text"
-                  className="ops-input"
-                  style={{ width: '100%' }}
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  placeholder="e.g. 14 Vaishali Nagar, Jaipur"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="ops-label" htmlFor="leave-reason">Detailed Reason for Leave</label>
-                <textarea
-                  id="leave-reason"
-                  className="ops-input"
-                  style={{ width: '100%', minHeight: 70, resize: 'vertical' }}
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Provide context for warden review..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="ops-label">Guardian / Emergency Contact Number</label>
-                <input
-                  type="tel"
-                  className="ops-input"
-                  style={{ width: '100%' }}
-                  value={parentContact}
-                  onChange={(e) => setParentContact(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div style={{
-                background: 'var(--bg-tertiary)',
-                padding: 10,
-                borderRadius: 'var(--radius-md)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 'var(--font-xs)',
-                color: 'var(--text-secondary)'
-              }}>
-                <input
-                  type="checkbox"
-                  id="consent"
-                  checked={parentConsent}
-                  onChange={(e) => setParentConsent(e.target.checked)}
-                  style={{ cursor: 'pointer' }}
-                />
-                <label htmlFor="consent" style={{ cursor: 'pointer' }}>
-                  I confirm that my parents/guardians are aware and have consented to this travel plan.
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 'var(--space-3)' }}>
-                <button type="button" className="btn btn--secondary" onClick={() => setIsApplyModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn--primary" disabled={!parentConsent}>
-                  Submit Application
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Leave Detail Drawer */}
-      {selectedLeave && (
-        <OpsDrawer
-          onClose={() => setSelectedLeave(null)}
-          title={`${selectedLeave.type} Details`}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)', fontWeight: 600 }}>STATUS</span>
-              {getStatusBadge(selectedLeave.status)}
+              <button onClick={() => setIsDrawerOpen(false)} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✕</button>
             </div>
 
-            <div className="card" style={{ padding: 'var(--space-3)', background: 'var(--bg-tertiary)' }}>
-              <div style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)' }}>TRAVEL WINDOW</div>
-              <div style={{ fontSize: 'var(--font-md)', fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
-                {formatDate(selectedLeave.from)} → {formatDate(selectedLeave.to)}
-              </div>
-              <div style={{ fontSize: 'var(--font-xs)', color: 'var(--accent-600)', fontWeight: 600, marginTop: 2 }}>
-                Total Duration: {selectedLeave.days} Days
-              </div>
-            </div>
+            <div style={{ padding: '24px 28px', flex: 1, overflowY: 'auto' }}>
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            <div>
-              <span className="ops-meta-label">Destination</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontWeight: 600 }}>
-                <MapPin size={16} color="var(--accent-600)" /> {selectedLeave.destination}
-              </div>
-            </div>
-
-            <div>
-              <span className="ops-meta-label">Reason</span>
-              <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5 }}>
-                {selectedLeave.reason}
-              </p>
-            </div>
-
-            <div>
-              <span className="ops-meta-label">Emergency / Parent Contact</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontWeight: 600 }}>
-                <Phone size={16} /> {selectedLeave.emergencyContact}
-              </div>
-            </div>
-
-            {selectedLeave.reviewedBy && (
-              <div style={{ padding: 'var(--space-3)', background: 'rgba(22, 163, 74, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(22, 163, 74, 0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-xs)', fontWeight: 700, color: 'var(--success-700)' }}>
-                  <UserCheck size={14} /> Approved by {selectedLeave.reviewedBy}
+                <div>
+                  <label style={labelStyle}>Leave Category <span style={{ color: '#ef4444' }}>*</span></label>
+                  <select value={leaveType} onChange={e => setLeaveType(e.target.value)} style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}>
+                    <option>Home visit</option>
+                    <option>Medical leave</option>
+                    <option>Academic / Conference</option>
+                    <option>Family function</option>
+                    <option>Weekend outing</option>
+                  </select>
                 </div>
-                {selectedLeave.remarks && (
-                  <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: 4 }}>
-                    Note: "{selectedLeave.remarks}"
-                  </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <label style={labelStyle}>From Date <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div style={{ position: 'relative' }}>
+                      <Calendar size={17} color="var(--text-tertiary)" style={{ position: 'absolute', left: 14, top: 13 }} />
+                      <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} style={{ ...inputStyle, paddingLeft: 40 }} required />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>To Date <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div style={{ position: 'relative' }}>
+                      <Calendar size={17} color="var(--text-tertiary)" style={{ position: 'absolute', left: 14, top: 13 }} />
+                      <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} style={{ ...inputStyle, paddingLeft: 40 }} required />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Destination City & Address <span style={{ color: '#ef4444' }}>*</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <MapPin size={17} color="var(--text-tertiary)" style={{ position: 'absolute', left: 14, top: 13 }} />
+                    <input type="text" value={destination} onChange={e => setDestination(e.target.value)} placeholder="e.g. 14 Vaishali Nagar, Jaipur"
+                      style={{ ...inputStyle, paddingLeft: 40 }} required />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Detailed Reason for Leave <span style={{ color: '#ef4444' }}>*</span></label>
+                  <textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Provide context for warden review..."
+                    style={{ ...inputStyle, minHeight: 80, resize: 'none' }} required />
+                  <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>{reason.length}/300</div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Guardian / Emergency Contact <span style={{ color: '#ef4444' }}>*</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <Phone size={17} color="var(--text-tertiary)" style={{ position: 'absolute', left: 14, top: 13 }} />
+                    <input type="tel" value={parentContact} onChange={e => setParentContact(e.target.value)}
+                      style={{ ...inputStyle, paddingLeft: 40 }} required />
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'var(--bg-tertiary)', padding: '14px 16px', borderRadius: 12,
+                  display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--text-secondary)',
+                  border: '1px solid var(--border-primary)',
+                }}>
+                  <input type="checkbox" id="consent" checked={parentConsent} onChange={e => setParentConsent(e.target.checked)}
+                    style={{ cursor: 'pointer', marginTop: 2, accentColor: '#6366f1' }} />
+                  <label htmlFor="consent" style={{ cursor: 'pointer', lineHeight: 1.5 }}>
+                    I confirm that my parents/guardians are aware and have consented to this travel plan.
+                  </label>
+                </div>
+
+                {formError && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#ef4444',
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                    padding: '10px 14px', borderRadius: 10,
+                  }}>
+                    <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                    <span>{formError}</span>
+                  </div>
                 )}
-              </div>
-            )}
+              </form>
+            </div>
 
-            {selectedLeave.status === 'approved' && (
-              <div className="card" style={{ padding: 'var(--space-4)', textAlign: 'center', border: '1px dashed var(--accent-300)' }}>
-                <FileText size={24} color="var(--accent-600)" style={{ margin: '0 auto 6px' }} />
-                <div style={{ fontWeight: 700, fontSize: 'var(--font-sm)' }}>Digital Gate Pass Active</div>
-                <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-tertiary)', marginTop: 2 }}>
-                  Show your hostel ID at Block B or Main Gate turnstile when departing.
-                </p>
-              </div>
-            )}
+            <div style={{ padding: '20px 28px', borderTop: '1px solid var(--border-primary)', display: 'flex', gap: 12 }}>
+              <button onClick={() => setIsDrawerOpen(false)} style={{
+                flex: 1, padding: 13, borderRadius: 12, border: '1px solid var(--border-primary)',
+                background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              }}>Cancel</button>
+              <button
+                onClick={handleSubmit}
+                style={{
+                  flex: 2, padding: 13, borderRadius: 12, border: 'none',
+                  background: parentConsent ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'rgba(99, 102, 241, 0.4)',
+                  color: 'white', fontSize: 14, fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+                  boxShadow: parentConsent ? '0 4px 16px rgba(99,102,241,0.3)' : 'none',
+                }}
+              >
+                <FileText size={16} /> Submit Application
+              </button>
+            </div>
           </div>
-        </OpsDrawer>
+        </>
       )}
+
+      {/* ─── Detail Drawer ─── */}
+      {selectedLeave && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', zIndex: 998 }} onClick={() => setSelectedLeave(null)} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: 420, background: 'var(--bg-secondary)', zIndex: 999,
+            boxShadow: '-8px 0 40px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column',
+            borderLeft: '1px solid var(--border-primary)',
+          }}>
+            <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{selectedLeave.type}</h2>
+                  {getStatusBadge(selectedLeave.status)}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{selectedLeave.id}</div>
+              </div>
+              <button onClick={() => setSelectedLeave(null)} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✕</button>
+            </div>
+
+            <div style={{ padding: '24px 28px', flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Travel Window */}
+              <div style={{ background: 'var(--bg-tertiary)', padding: '16px 18px', borderRadius: 14, border: '1px solid var(--border-primary)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Travel Window</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {formatDate(selectedLeave.from)} → {formatDate(selectedLeave.to)}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#6366f1', marginTop: 4 }}>
+                  Duration: {selectedLeave.days} {selectedLeave.days === 1 ? 'Day' : 'Days'}
+                </div>
+              </div>
+
+              {/* Destination */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Destination</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <MapPin size={16} color="#6366f1" /> {selectedLeave.destination}
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Reason</div>
+                <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{selectedLeave.reason}</p>
+              </div>
+
+              {/* Contact */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Emergency Contact</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <Phone size={16} color="#6366f1" /> {selectedLeave.emergencyContact}
+                </div>
+              </div>
+
+              {/* Reviewer */}
+              {selectedLeave.reviewedBy && (
+                <div style={{ padding: '14px 16px', background: 'rgba(5,150,105,0.06)', borderRadius: 12, border: '1px solid rgba(5,150,105,0.15)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#059669' }}>
+                    <UserCheck size={15} /> Approved by {selectedLeave.reviewedBy}
+                  </div>
+                  {selectedLeave.remarks && (
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, fontStyle: 'italic' }}>"{selectedLeave.remarks}"</p>
+                  )}
+                </div>
+              )}
+
+              {/* Gate Pass */}
+              {selectedLeave.status === 'approved' && (
+                <div style={{
+                  padding: '20px', textAlign: 'center', borderRadius: 14,
+                  border: '2px dashed rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.04)',
+                }}>
+                  <FileText size={28} color="#6366f1" style={{ margin: '0 auto 8px' }} />
+                  <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)' }}>Digital Gate Pass Active</div>
+                  <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                    Show your hostel ID at Block B or Main Gate turnstile when departing.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
     </div>
   );
 }

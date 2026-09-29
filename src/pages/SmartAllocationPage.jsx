@@ -30,8 +30,8 @@ export default function SmartAllocationPage() {
   };
 
   const handleGenerate = async () => {
-    if (selectedStudents.length < 2 || selectedStudents.length % 2 !== 0) {
-      setError('Select an even number of students so everyone can be paired.');
+    if (selectedStudents.length < 1) {
+      setError('Select at least one student to allocate.');
       return;
     }
     setStep(3);
@@ -105,7 +105,7 @@ export default function SmartAllocationPage() {
           <div className="animate-stagger">
             <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 600, marginBottom: 'var(--space-4)' }}>Select Students to Allocate</h3>
             <p style={{ fontSize: 'var(--font-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
-              Choose an even number of active demo students. Selected students are considered for reassignment.
+              Choose active demo students. Selected students are considered for reassignment.
             </p>
             {hydrating ? <p role="status">Loading hostel students...</p> : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 'var(--space-2)', marginBottom: 'var(--space-5)' }}>
@@ -124,7 +124,7 @@ export default function SmartAllocationPage() {
               {selectedStudents.length} selected · {eligibleStudents.length} eligible
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn--primary" onClick={() => { setError(''); setStep(2); }} disabled={hydrating || selectedStudents.length < 2 || selectedStudents.length % 2 !== 0}>
+              <button className="btn btn--primary" onClick={() => { setError(''); setStep(2); }} disabled={hydrating || selectedStudents.length < 1}>
                 Next Step <ChevronRight size={18} />
               </button>
             </div>

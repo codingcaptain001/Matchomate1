@@ -235,6 +235,66 @@ export default function StudentDashboard() {
         </div>
       </div>
 
+      {/* ===================== ACTIVE LEAVE / PASS BANNER ===================== */}
+      {activeLeave && (
+        <div
+          onClick={() => navigate('/student/leave')}
+          style={{
+            marginBottom: 20,
+            padding: '16px 22px',
+            borderRadius: 16,
+            background: activeLeave.status === 'approved'
+              ? 'linear-gradient(135deg, rgba(5, 150, 105, 0.08), rgba(5, 150, 105, 0.02))'
+              : 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.03))',
+            border: activeLeave.status === 'approved'
+              ? '1px solid rgba(5, 150, 105, 0.25)'
+              : '1px solid rgba(99, 102, 241, 0.25)',
+            boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 14,
+            cursor: 'pointer',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: activeLeave.status === 'approved' ? '#059669' : '#6366f1',
+              color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Calendar size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {activeLeave.type} ({activeLeave.days} {activeLeave.days === 1 ? 'day' : 'days'})
+                </span>
+                <span style={{
+                  fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: 12,
+                  background: activeLeave.status === 'approved' ? 'rgba(5, 150, 105, 0.15)' : 'rgba(217, 119, 6, 0.15)',
+                  color: activeLeave.status === 'approved' ? '#059669' : '#d97706',
+                  border: `1px solid ${activeLeave.status === 'approved' ? 'rgba(5, 150, 105, 0.25)' : 'rgba(217, 119, 6, 0.25)'}`,
+                }}>
+                  {activeLeave.status === 'approved' ? '✓ Approved Gate Pass' : '⏳ Pending Warden Sign-off'}
+                </span>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginTop: 2 }}>
+                {formatDate(activeLeave.from)} → {formatDate(activeLeave.to)} · Destination: <strong style={{ color: 'var(--text-secondary)' }}>{activeLeave.destination}</strong>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '13px', fontWeight: 700, color: '#6366f1' }}>
+            <span>View Pass Details</span>
+            <ChevronRight size={16} />
+          </div>
+        </div>
+      )}
+
       {/* ===================== 5 STATS CARDS ROW ===================== */}
       <div style={{
         display: 'grid',
@@ -487,11 +547,11 @@ export default function StudentDashboard() {
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <span>{myComplaints.length || 1}</span>
+              <span>{myComplaints.length}</span>
               <ChevronRight size={13} style={{ color: 'var(--text-quaternary)' }} />
             </div>
-            <div style={{ fontSize: '10.5px', color: '#f43f5e', marginTop: 1, fontWeight: 500 }}>
-              Requires attention
+            <div style={{ fontSize: '10.5px', color: myComplaints.length > 0 ? '#f43f5e' : '#10b981', marginTop: 1, fontWeight: 500 }}>
+              {myComplaints.length > 0 ? `${myComplaints.length} active ticket${myComplaints.length > 1 ? 's' : ''}` : 'All clear'}
             </div>
           </div>
         </div>
