@@ -170,21 +170,30 @@ These routes are registered by the Express backend.
 
 The current project follows a frontend + backend architecture:
 
-                    MATCHOMATE
-                        │
-          ┌─────────────┴─────────────┐
-          │                           │
-          ▼                           ▼
-   React + Vite                Express + TypeScript
-    Frontend                       Backend
-          │                           │
-          │                           ├── Student Repository
-          │                           │
-          │                           ├── Compatibility Engine
-          │                           │
-          │                           └── Matching Service
-          │
-          └──────────── REST API ──────┘
+flowchart TB
+
+    A[MatchoMate]
+
+    A --> B[React + Vite Frontend]
+    A --> C[Express + TypeScript Backend]
+
+    B --> D[Student Dashboard]
+    B --> E[Lifestyle Profile]
+    B --> F[Matching Interface]
+
+    C --> G[REST API]
+
+    G --> H[Student Repository]
+    G --> I[Compatibility Engine]
+    G --> J[Matching Service]
+
+    H --> I
+    I --> J
+
+    I --> K[Weighted Compatibility Score]
+    K --> L[Explainable Result]
+
+    J --> M[Roommate Recommendations]
 
 The backend is built with Express and exposes API routes for students, compatibility, matching, and application state.
 
