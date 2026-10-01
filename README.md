@@ -10,48 +10,45 @@ The project combines a modern React frontend with a lightweight TypeScript/Expre
 
 ---
 
-🎯 Problem
+# 1. Problem
 
-Finding a suitable roommate is often based on limited information such as:
+Traditional hostel management is often dependent on manual registers, spreadsheets, and disconnected processes.
 
-- Room availability
-- Course or branch
-- Random allocation
-- Personal assumptions
+Some of the major problems are:
 
-However, lifestyle differences can create problems after students start living together.
+- Manual hostel entry/exit registers
+- Difficult room and bed management
+- Room allocation based mainly on availability
+- No intelligent roommate matching
+- Payment tracking through separate records
+- Complaints handled through informal channels
+- Difficult maintenance tracking
+- Separate processes for leave and visitors
+- Limited visibility into hostel-wide operational data
+- Hostel software is generally reactive rather than predictive
 
-Examples include:
+For example, when two students with very different sleep schedules, cleanliness preferences, or noise tolerance are assigned to the same room, it can lead to conflicts.
+Similarly, a hostel administrator may know that complaints have increased, but may not easily understand the underlying pattern or what action should be taken.
 
-- Different sleeping schedules
-- Different cleanliness expectations
-- Different study routines
-- Different noise tolerance
-- Different social preferences
-- Different guest preferences
-- Different food preferences
-- Smoking/non-smoking preferences
+# 2. Solution
 
-MatchoMate addresses this problem by using structured lifestyle data to provide compatibility-based roommate recommendations.
+MatchoMate provides a centralized platform for hostel operations with separate experiences for **Administrators and Students**.
 
----
+### 🏢 1. Admin Operations Workspace
+- **Attendance & Roll-Call**: Live biometric gate tracking, daily headcount, and bulk attendance marking.
+- **Financial Ledger & Fees**: Indian fee structures, instant UPI/NEFT status tracking, receipt generator, and reminder dispatch.
+- **Complaints & Maintenance**: Integrated ticketing workflow (*Registered → Assigned → Closed*) with vendor task dispatch.
+- **Security & Visitor Management**: Pre-approved gate passes, OTP codes, and visitor check-in/out logs.
+- **Leave & Gate Out-Passes**: Vacation and night pass reviews with parent SMS consent verification.
+- **Mess & Dining Management**: 4-course daily meal scheduling, rebate ledger calculation, and kitchen quality ratings.
 
-💡 Solution
-
-MatchoMate allows students to create a lifestyle profile and uses that information to calculate compatibility with other students.
-
-The system:
-
-1. Collects student lifestyle information.
-2. Validates the profile data.
-3. Compares two students across multiple lifestyle dimensions.
-4. Calculates individual compatibility scores.
-5. Combines the scores using predefined weights.
-6. Generates an overall compatibility percentage.
-7. Provides an explanation highlighting similarities and differences.
-8. Uses the compatibility results to generate roommate matches.
-
----
+### 🎓 2. Resident Student Workspace
+- **Student Dashboard**: Real-time room status, roommate compatibility, IN/OUT gate indicator, payment dues, and mess notices.
+- **Hostel Movement Tracker**: Digital check-in (**MARK IN**) and gate out-pass generation (**MARK OUT**).
+- **AI Roommate Compatibility**: Compatibility breakdown with lifestyle metrics (sleep schedule, study vibe, cleanliness).
+- **Instant Fee Payments**: Seamless UPI payment simulation, receipt downloads, and transaction history.
+- **Mess Rebates & Feedback**: Meal skip requests with automated ₹75/meal rebate calculation and food reviews.
+- **Helpdesk & Guidelines**: 24x7 emergency hotlines, hostel FAQs, and direct confidential warden messaging.
 
 ✨ Key Features
 
