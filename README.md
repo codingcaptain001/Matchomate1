@@ -260,12 +260,12 @@ Matchomate1/
 │   └── dev.js
 │
 ├── .env.example
+├── .gitignore
 ├── index.html
 ├── package.json
 ├── package-lock.json
 ├── vercel.json
 └── vite.config.js
-
 ---
 
 ⚙️ How the Backend Works
